@@ -1,0 +1,6 @@
+{
+  "name": "Money Manager",
+  "description": "Prototipo interactivo de gestión de finanzas personales e inversiones con control de saldo, categorización dinámica y seguimiento de pendientes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

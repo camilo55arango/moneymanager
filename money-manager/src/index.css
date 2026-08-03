@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@theme {
+  --color-tertiary-fixed-dim: #ffb95f;
+  --color-on-tertiary: #ffffff;
+  --color-on-primary-container: #7c839b;
+  --color-surface-container: #eceef0;
+  --color-surface-container-lowest: #ffffff;
+  --color-inverse-on-surface: #eff1f3;
+  --color-surface-variant: #e0e3e5;
+  --color-tertiary-fixed: #ffddb8;
+  --color-primary-fixed: #dae2fd;
+  --color-secondary-fixed: #f3e8ff;
+  --color-on-secondary-fixed: #3b0764;
+  --color-on-primary-fixed: #131b2e;
+  --color-on-error-container: #93000a;
+  --color-on-secondary: #ffffff;
+  --color-primary-fixed-dim: #bec6e0;
+  --color-on-primary-fixed-variant: #3f465c;
+  --color-surface: #f7f9fb;
+  --color-on-tertiary-container: #b87500;
+  --color-on-surface: #191c1e;
+  --color-inverse-primary: #bec6e0;
+  --color-on-tertiary-fixed-variant: #653e00;
+  --color-on-primary: #ffffff;
+  --color-on-background: #191c1e;
+  --color-secondary-container: #e9d5ff;
+  --color-primary: #000000;
+  --color-surface-bright: #f7f9fb;
+  --color-inverse-surface: #2d3133;
+  --color-surface-container-high: #e6e8ea;
+  --color-on-surface-variant: #45464d;
+  --color-primary-container: #131b2e;
+  --color-tertiary: #000000;
+  --color-surface-dim: #d8dadc;
+  --color-on-secondary-container: #581c87;
+  --color-on-secondary-fixed-variant: #6b21a8;
+  --color-on-tertiary-fixed: #2a1700;
+  --color-secondary-fixed-dim: #c084fc;
+  --color-error-container: #ffdad6;
+  --color-outline: #76777d;
+  --color-on-error: #ffffff;
+  --color-surface-container-highest: #e0e3e5;
+  --color-tertiary-container: #2a1700;
+  --color-background: #f7f9fb;
+  --color-surface-tint: #565e74;
+  --color-secondary: #6d28d9;
+  --color-error: #ba1a1a;
+  --color-outline-variant: #c6c6cd;
+  --color-surface-container-low: #f2f4f6;
+
+  --spacing-unit: 4px;
+  --spacing-container-padding-mobile: 16px;
+  --spacing-container-mobile: 16px;
+  --spacing-container-padding-desktop: 32px;
+  --spacing-container-desktop: 32px;
+  --spacing-gutter: 20px;
+  --spacing-stack-sm: 8px;
+  --spacing-stack-md: 16px;
+  --spacing-stack-lg: 24px;
+}
+
+body {
+  background-color: #f7f9fb;
+  color: #191c1e;
+  font-family: 'Inter', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+.custom-shadow-l1 {
+  box-shadow: 0 4px 15px rgba(15, 23, 42, 0.04);
+}
+
+.item-action-overlay {
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.item-row.is-active .item-action-overlay {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.category-chip.active {
+  background-color: #131b2e;
+  color: #ffffff;
+}
+
+.font-display-currency {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  line-height: 36px;
+  letter-spacing: -0.02em;
+  font-weight: 700;
+}
+
+@media (min-width: 640px) {
+  .font-display-currency {
+    font-size: 38px;
+    line-height: 46px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .font-display-currency {
+    font-size: 48px;
+    line-height: 56px;
+  }
+}
+
+.font-headline-lg {
+  font-family: 'Inter', sans-serif;
+  font-size: 32px;
+  line-height: 40px;
+  letter-spacing: -0.01em;
+  font-weight: 700;
+}
+
+.font-headline-lg-mobile {
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  line-height: 32px;
+  font-weight: 700;
+}
+
+.font-headline-md {
+  font-family: 'Inter', sans-serif;
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+}
+
+.font-body-lg {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+}
+
+.font-body-md {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+}
+
+.font-label-caps {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.font-numeric-data {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="number"]::-webkit-inner-spin-button, 
+input[type="number"]::-webkit-outer-spin-button { 
+    -webkit-appearance: none; 
+    margin: 0; 
+}
+
