@@ -32,19 +32,17 @@ export const InitialSetupView: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
 
     const w = parseFormattedNumber(walletInput);
     const inv = parseFormattedNumber(investmentInput);
 
-    updateBalances(w, inv);
+    await updateBalances(w, inv);
 
-    setTimeout(() => {
-      setIsSaving(false);
-      setCurrentView('dashboard');
-    }, 400);
+    setIsSaving(false);
+    setCurrentView('dashboard');
   };
 
   return (

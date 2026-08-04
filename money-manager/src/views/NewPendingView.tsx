@@ -67,7 +67,7 @@ export const NewPendingView: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -79,7 +79,7 @@ export const NewPendingView: React.FC = () => {
     const parsedAmount = parseFormattedNumber(amount);
 
     if (isEditing && editingPendingItem) {
-      updatePendingItem({
+      await updatePendingItem({
         ...editingPendingItem,
         type,
         amount: parsedAmount,
@@ -91,7 +91,7 @@ export const NewPendingView: React.FC = () => {
       });
       setEditingPendingItem(null);
     } else {
-      addPendingItem({
+      await addPendingItem({
         type,
         amount: parsedAmount,
         name: name.trim(),

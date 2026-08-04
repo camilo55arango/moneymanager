@@ -23,7 +23,7 @@ export const TransferModal: React.FC = () => {
     setErrorMsg(null);
   };
 
-  const handleConfirm = (e: React.FormEvent) => {
+  const handleConfirm = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
     setSuccessMsg(null);
@@ -42,7 +42,7 @@ export const TransferModal: React.FC = () => {
       return;
     }
 
-    const success = transferFunds(numericAmount, direction);
+    const success = await transferFunds(numericAmount, direction);
     if (success) {
       setSuccessMsg('¡Transferencia completada con éxito!');
       setTimeout(() => {

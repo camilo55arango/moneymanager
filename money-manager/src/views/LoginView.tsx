@@ -1,217 +1,545 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
+const PRESET_AVATARS = [
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Camilo',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo',
+];
+
 export const LoginView: React.FC = () => {
-  const { user, loginWithGoogle, logout, setCurrentView } = useApp();
+  const { user, login, register, updateProfile, logout, setCurrentView } = useApp();
 
-  const [customEmail, setCustomEmail] = useState('');
-  const [customName, setCustomName] = useState('');
-  const [isSigningIn, setIsSigningIn] = useState(false);
-  const [showAccountChooser, setShowAccountChooser] = useState(false);
+  const [mode, setMode] = useState<'login' | 'register'>('login');
 
-  const defaultAvatar =
-    'https://lh3.googleusercontent.com/aida-public/AB6AXuAPxb7Tgyu8QlU52A6RD2_N0kl3Owe2U_pkPz8Ekp7-cp1QDiNFs8X4G_ZyumerwS1fDytzJxKat9F2GRPZ6Qmmw2PEWnrHmJsHJy5ExJZxzbZIInUiUBxGBp4dJ2XyL3UacF-J04GgbU7mZ3jKD3U9DIdQS0LVE1XBbacwdcQqlYM_P0t1-7jzulQG_-ORGRvHXR5chWIHcqym2-BQL2my1qzthgqvlmaD5diPMwJUbUQUN76dQAe';
+  // Login form state
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
-  const handleQuickGoogleLogin = (email: string, name: string) => {
-    setIsSigningIn(true);
-    setTimeout(() => {
-      loginWithGoogle(email, name, defaultAvatar);
-      setIsSigningIn(false);
-      setCurrentView('dashboard');
-    }, 800);
+  // Register form state
+  const [regName, setRegName] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPassword, setRegPassword] = useState('');
+  const [selectedAvatar, setSelectedAvatar] = useState(PRESET_AVATARS[0]);
+  const [customAvatarUrl, setCustomAvatarUrl] = useState('');
+
+  // Profile Edit State when logged in
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [editName, setEditName] = useState(user.name);
+  const [editAvatarUrl, setEditAvatarUrl] = useState(user.avatarUrl);
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const activeAvatar = customAvatarUrl || selectedAvatar;
+
+  const handleLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!loginEmail || !loginPassword) {
+      setMessage({ text: 'Por favor completa todos los campos.', type: 'error' });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    const res = await login(loginEmail, loginPassword);
+    setIsLoading(false);
+
+    if (res.success) {
+      setMessage({ text: '¡Sesión iniciada con éxito!', type: 'success' });
+      setTimeout(() => {
+        setCurrentView('dashboard');
+      }, 600);
+    } else {
+      setMessage({ text: res.error || 'Email o contraseña incorrectos.', type: 'error' });
+    }
   };
 
-  const handleCustomLogin = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customEmail) return;
-    setIsSigningIn(true);
-    setTimeout(() => {
-      loginWithGoogle(
-        customEmail,
-        customName || customEmail.split('@')[0],
-        defaultAvatar
-      );
-      setIsSigningIn(false);
-      setCurrentView('dashboard');
-    }, 800);
+    if (!regName || !regEmail || !regPassword) {
+      setMessage({ text: 'Por favor completa los campos obligatorios.', type: 'error' });
+      return;
+    }
+
+    if (regPassword.length < 6) {
+      setMessage({ text: 'La contraseña debe tener al menos 6 caracteres.', type: 'error' });
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    const res = await register(regName, regEmail, regPassword, activeAvatar);
+    setIsLoading(false);
+
+    if (res.success) {
+      if (res.confirmationSent) {
+        setMessage({
+          text: 'Te hemos enviado un correo de confirmación a tu dirección de email. Por favor revisa tu bandeja de entrada o spam para activar tu cuenta.',
+          type: 'success',
+        });
+      } else {
+        setMessage({ text: '¡Cuenta creada con éxito! Bienvenido a Money Manager.', type: 'success' });
+        setTimeout(() => {
+          setCurrentView('dashboard');
+        }, 800);
+      }
+    } else {
+      setMessage({ text: res.error || 'No se pudo registrar el usuario.', type: 'error' });
+    }
+  };
+
+  const handleSaveProfileEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const res = await updateProfile(editName, editAvatarUrl);
+    setIsLoading(false);
+    if (res.success) {
+      setIsEditingProfile(false);
+      setMessage({ text: 'Perfil actualizado correctamente.', type: 'success' });
+    } else {
+      setMessage({ text: res.error || 'Error al actualizar el perfil.', type: 'error' });
+    }
+  };
+
+  const compressAvatarImage = (file: File, maxSize: number = 200): Promise<string> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxSize) {
+              height = Math.round((height * maxSize) / width);
+              width = maxSize;
+            }
+          } else {
+            if (height > maxSize) {
+              width = Math.round((width * maxSize) / height);
+              height = maxSize;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8));
+          } else {
+            resolve(event.target?.result as string);
+          }
+        };
+        img.onerror = () => resolve(event.target?.result as string);
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = () => resolve('');
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const compressedBase64 = await compressAvatarImage(file, 200);
+        if (isEditingProfile) {
+          setEditAvatarUrl(compressedBase64);
+        } else {
+          setCustomAvatarUrl(compressedBase64);
+        }
+      } catch (err) {
+        console.error('Error al procesar la imagen:', err);
+      }
+    }
   };
 
   return (
     <main className="flex-grow flex flex-col items-center justify-center px-container-padding-mobile md:px-container-padding-desktop py-stack-lg max-w-md mx-auto w-full pb-32">
       {/* Container Card */}
       <div className="w-full bg-surface-container-lowest p-6 sm:p-8 rounded-3xl border border-outline-variant/60 shadow-lg text-center flex flex-col items-center">
-        {/* Google G Logo */}
-        <div className="w-16 h-16 rounded-2xl bg-surface-container flex items-center justify-center shadow-xs border border-outline-variant/40 mb-5">
-          <svg className="w-9 h-9" viewBox="0 0 24 24">
-            <path
-              fill="#4285F4"
-              d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
-            />
-            <path
-              fill="#34A853"
-              d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.27v3.15C3.25 21.3 7.31 24 12 24z"
-            />
-            <path
-              fill="#FBBC05"
-              d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.27C.46 8.2.0 10.04.0 12s.46 3.8 1.27 5.42l4.01-3.15z"
-            />
-            <path
-              fill="#EA4335"
-              d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.25 2.7 1.27 6.58l4.01 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
-            />
-          </svg>
+        {/* App / Lock Icon */}
+        <div className="w-16 h-16 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center shadow-xs border border-outline-variant/40 mb-4">
+          <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
         </div>
 
-        <h2 className="text-2xl font-bold text-on-surface mb-2">
-          Iniciar Sesión con Google
+        <h2 className="text-2xl font-bold text-on-surface mb-1">
+          {user.isLoggedIn ? 'Mi Cuenta' : mode === 'login' ? 'Iniciar Sesión' : 'Crear Cuenta'}
         </h2>
         <p className="text-xs text-on-surface-variant max-w-xs mb-6">
-          Sincroniza y respalda tus datos financieros en la nube de forma segura con tu cuenta de Google.
+          {user.isLoggedIn
+            ? 'Gestiona tu perfil y credenciales de Money Manager.'
+            : mode === 'login'
+            ? 'Ingresa tus credenciales para acceder a tus finanzas.'
+            : 'Regístrate con tu correo y elige tu foto de perfil.'}
         </p>
 
-        {/* Current Active Account Card if Logged In */}
-        {user.isLoggedIn && !showAccountChooser ? (
-          <div className="w-full bg-surface-container p-4 rounded-2xl border border-outline-variant/60 mb-6 text-left flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <img
-                src={user.avatarUrl}
-                alt={user.name}
-                className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/20 shrink-0"
-              />
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h3 className="font-bold text-sm text-on-surface truncate">{user.name}</h3>
-                  <span className="material-symbols-outlined text-emerald-500 text-base">verified</span>
+        {/* Message Banner */}
+        {message && (
+          <div
+            className={`w-full p-3 mb-5 text-xs font-semibold rounded-xl text-left flex items-center gap-2 ${
+              message.type === 'success'
+                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
+                : 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
+            }`}
+          >
+            <span className="material-symbols-outlined text-sm">
+              {message.type === 'success' ? 'check_circle' : 'error'}
+            </span>
+            <span>{message.text}</span>
+          </div>
+        )}
+
+        {/* If User Is Already Logged In */}
+        {user.isLoggedIn ? (
+          <div className="w-full space-y-5">
+            {!isEditingProfile ? (
+              <div className="w-full bg-surface-container p-5 rounded-2xl border border-outline-variant/60 text-left flex flex-col items-center text-center">
+                <div className="relative mb-3">
+                  <img
+                    src={user.avatarUrl || PRESET_AVATARS[0]}
+                    alt={user.name}
+                    className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20 shadow-md"
+                  />
+                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-surface rounded-full"></span>
                 </div>
-                <p className="text-xs text-outline truncate">{user.email}</p>
-                <span className="inline-block mt-1 text-[10px] bg-emerald-500/10 text-emerald-600 font-bold px-2 py-0.5 rounded-full">
+                <h3 className="font-bold text-lg text-on-surface">{user.name}</h3>
+                <p className="text-xs text-outline mb-3">{user.email}</p>
+                <span className="inline-block text-[11px] bg-emerald-500/10 text-emerald-600 font-bold px-3 py-1 rounded-full border border-emerald-500/20">
                   Sesión Activa
                 </span>
+
+                <button
+                  onClick={() => {
+                    setEditName(user.name);
+                    setEditAvatarUrl(user.avatarUrl);
+                    setIsEditingProfile(true);
+                  }}
+                  className="mt-4 text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                  Editar Foto o Nombre
+                </button>
               </div>
-            </div>
-
-            <button
-              onClick={() => logout()}
-              title="Cerrar sesión"
-              className="text-xs font-bold text-rose-600 hover:underline shrink-0 cursor-pointer"
-            >
-              Salir
-            </button>
-          </div>
-        ) : null}
-
-        {/* Action Buttons */}
-        {user.isLoggedIn && !showAccountChooser ? (
-          <div className="w-full space-y-3">
-            <button
-              onClick={() => setCurrentView('dashboard')}
-              className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-lg">dashboard</span>
-              <span>Continuar a la App</span>
-            </button>
-
-            <button
-              onClick={() => setShowAccountChooser(true)}
-              className="w-full bg-surface-container border border-outline-variant/60 text-on-surface py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-surface-container-high active:scale-95 transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-lg">switch_account</span>
-              <span>Usar otra cuenta de Google</span>
-            </button>
-          </div>
-        ) : (
-          <div className="w-full space-y-4">
-            {/* Quick account suggestion */}
-            <div className="text-left">
-              <span className="text-[11px] font-bold text-outline uppercase tracking-wider block mb-2">
-                Selecciona una cuenta de Google
-              </span>
-              <button
-                onClick={() => handleQuickGoogleLogin('micro.camilo55@gmail.com', 'Camilo M.')}
-                disabled={isSigningIn}
-                className="w-full bg-surface-container hover:bg-surface-container-high border border-outline-variant/60 p-3 rounded-2xl flex items-center justify-between gap-3 transition-all cursor-pointer group"
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-primary-fixed text-primary flex items-center justify-center font-bold text-sm shrink-0">
-                    C
-                  </div>
-                  <div className="text-left min-w-0">
-                    <p className="font-bold text-xs text-on-surface truncate">Camilo M.</p>
-                    <p className="text-[11px] text-outline truncate">micro.camilo55@gmail.com</p>
-                  </div>
-                </div>
-                <span className="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform text-lg">
-                  chevron_right
-                </span>
-              </button>
-            </div>
-
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-outline-variant/40" />
-              <span className="flex-shrink mx-3 text-outline text-[11px] font-medium">o ingresa otro correo</span>
-              <div className="flex-grow border-t border-outline-variant/40" />
-            </div>
-
-            {/* Custom Google Email Input Form */}
-            <form onSubmit={handleCustomLogin} className="space-y-3 text-left">
-              <div>
-                <label className="text-[11px] font-bold text-outline uppercase block mb-1">
-                  Correo electrónico de Google
-                </label>
-                <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                  <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                    mail
-                  </span>
+            ) : (
+              /* Profile Edit Form */
+              <form onSubmit={handleSaveProfileEdit} className="w-full bg-surface-container p-5 rounded-2xl border border-outline-variant/60 text-left space-y-4">
+                <h4 className="font-bold text-sm text-on-surface mb-2">Editar Perfil</h4>
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">Nombre</label>
                   <input
-                    type="email"
+                    type="text"
                     required
-                    placeholder="usuario@gmail.com"
-                    value={customEmail}
-                    onChange={(e) => setCustomEmail(e.target.value)}
-                    className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    value={editName}
+                    onChange={(e) => setEditName(e.target.value)}
+                    className="w-full bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface rounded-xl border border-outline-variant/60 focus:border-primary focus:outline-none"
                   />
                 </div>
-              </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">Foto de Perfil (URL o Imagen)</label>
+                  <div className="flex items-center gap-3 mb-2">
+                    <img
+                      src={editAvatarUrl || PRESET_AVATARS[0]}
+                      alt="Vista previa"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/30 shrink-0"
+                    />
+                    <input
+                      type="url"
+                      placeholder="https://ejemplo.com/mi-foto.jpg"
+                      value={editAvatarUrl}
+                      onChange={(e) => setEditAvatarUrl(e.target.value)}
+                      className="w-full bg-surface-container-lowest px-3 py-2 text-xs font-semibold text-on-surface rounded-xl border border-outline-variant/60 focus:border-primary focus:outline-none"
+                    />
+                  </div>
+                  <label className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold cursor-pointer hover:underline">
+                    <span className="material-symbols-outlined text-sm">upload</span>
+                    <span>Subir imagen desde equipo</span>
+                    <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
+                  </label>
+                </div>
+
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="px-3 py-2 text-xs font-bold text-outline hover:text-on-surface cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary text-on-primary rounded-xl text-xs font-bold shadow-xs hover:opacity-90 cursor-pointer"
+                  >
+                    Guardar Cambios
+                  </button>
+                </div>
+              </form>
+            )}
+
+            <div className="w-full space-y-3 pt-2">
+              <button
+                onClick={() => setCurrentView('dashboard')}
+                className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">dashboard</span>
+                <span>Ir al Panel de Finanzas</span>
+              </button>
 
               <button
-                type="submit"
-                disabled={isSigningIn || !customEmail}
-                className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50"
+                onClick={() => {
+                  logout();
+                  setMessage({ text: 'Has cerrado sesión.', type: 'success' });
+                }}
+                className="w-full bg-surface-container border border-outline-variant/60 text-rose-600 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-500/10 active:scale-95 transition-all cursor-pointer"
               >
-                {isSigningIn ? (
-                  <span className="flex items-center gap-2">
-                    <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
-                    <span>Conectando con Google...</span>
-                  </span>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" viewBox="0 0 24 24">
-                      <path
-                        fill="currentColor"
-                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                <span className="material-symbols-outlined text-lg">logout</span>
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Authentication Form (Login / Register Tabs) */
+          <div className="w-full space-y-5">
+            {/* Mode Switch Tabs */}
+            <div className="flex bg-surface-container p-1 rounded-2xl border border-outline-variant/60">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('login');
+                  setMessage(null);
+                }}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  mode === 'login'
+                    ? 'bg-surface text-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Iniciar Sesión
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode('register');
+                  setMessage(null);
+                }}
+                className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                  mode === 'register'
+                    ? 'bg-surface text-primary shadow-xs'
+                    : 'text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Registrarse
+              </button>
+            </div>
+
+            {/* LOGIN FORM */}
+            {mode === 'login' ? (
+              <form onSubmit={handleLoginSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
+                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
+                      mail
+                    </span>
+                    <input
+                      type="email"
+                      required
+                      placeholder="tu@email.com"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">
+                    Contraseña
+                  </label>
+                  <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
+                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
+                      lock
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      placeholder="••••••••"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !loginEmail || !loginPassword}
+                  className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 mt-2"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                      <span>Ingresando...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">login</span>
+                      <span>Iniciar Sesión</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            ) : (
+              /* REGISTER FORM */
+              <form onSubmit={handleRegisterSubmit} className="space-y-4 text-left">
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">
+                    Nombre Completo
+                  </label>
+                  <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
+                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
+                      person
+                    </span>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Camilo Arango"
+                      value={regName}
+                      onChange={(e) => setRegName(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">
+                    Correo Electrónico
+                  </label>
+                  <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
+                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
+                      mail
+                    </span>
+                    <input
+                      type="email"
+                      required
+                      placeholder="tu@email.com"
+                      value={regEmail}
+                      onChange={(e) => setRegEmail(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-1">
+                    Contraseña
+                  </label>
+                  <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
+                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
+                      lock
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Mínimo 6 caracteres"
+                      value={regPassword}
+                      onChange={(e) => setRegPassword(e.target.value)}
+                      className="w-full bg-transparent pl-10 pr-3 py-2.5 text-xs font-semibold text-on-surface focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Foto de Perfil Selection */}
+                <div>
+                  <label className="text-[11px] font-bold text-outline uppercase block mb-2">
+                    Foto de Perfil (Elige o Personaliza)
+                  </label>
+
+                  {/* Selected Avatar Preview */}
+                  <div className="flex items-center gap-3 mb-3">
+                    <img
+                      src={activeAvatar}
+                      alt="Avatar seleccionado"
+                      className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/40 shadow-xs"
+                    />
+                    <div className="flex-grow">
+                      <input
+                        type="url"
+                        placeholder="Pegar URL de foto personalizada..."
+                        value={customAvatarUrl}
+                        onChange={(e) => setCustomAvatarUrl(e.target.value)}
+                        className="w-full bg-surface-container px-3 py-2 text-[11px] font-medium text-on-surface rounded-xl border border-outline-variant/60 focus:border-primary focus:outline-none"
                       />
-                    </svg>
-                    <span>Continuar con Google</span>
-                  </>
-                )}
-              </button>
-            </form>
+                    </div>
+                  </div>
 
-            {user.isLoggedIn && (
-              <button
-                onClick={() => setShowAccountChooser(false)}
-                className="text-xs text-outline hover:underline font-bold pt-2 cursor-pointer"
-              >
-                Cancelar y mantener cuenta actual
-              </button>
+                  {/* Preset Avatars */}
+                  <div className="flex items-center justify-between gap-2 bg-surface-container p-2 rounded-2xl border border-outline-variant/40">
+                    {PRESET_AVATARS.map((avatar, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAvatar(avatar);
+                          setCustomAvatarUrl('');
+                        }}
+                        className={`w-9 h-9 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                          !customAvatarUrl && selectedAvatar === avatar
+                            ? 'border-primary scale-110 ring-2 ring-primary/30'
+                            : 'border-transparent opacity-75 hover:opacity-100'
+                        }`}
+                      >
+                        <img src={avatar} alt={`Avatar ${idx + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="mt-2 text-right">
+                    <label className="inline-flex items-center gap-1 text-[11px] text-primary font-semibold cursor-pointer hover:underline">
+                      <span className="material-symbols-outlined text-sm">upload</span>
+                      <span>Subir archivo de imagen</span>
+                      <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
+                    </label>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !regName || !regEmail || !regPassword}
+                  className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer disabled:opacity-50 mt-2"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                      <span>Creando cuenta...</span>
+                    </span>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">person_add</span>
+                      <span>Crear Cuenta e Iniciar</span>
+                    </>
+                  )}
+                </button>
+              </form>
             )}
           </div>
         )}
 
-        {/* Security / OAuth footer */}
+        {/* Security Footer */}
         <div className="mt-8 pt-4 border-t border-outline-variant/40 w-full flex items-center justify-center gap-2 text-outline text-[11px]">
-          <span className="material-symbols-outlined text-sm text-emerald-500">lock</span>
-          <span>Autenticación oficial con OAuth 2.0 de Google</span>
+          <span className="material-symbols-outlined text-sm text-emerald-500">verified_user</span>
+          <span>Autenticación y almacenamiento seguro en Supabase</span>
         </div>
       </div>
     </main>

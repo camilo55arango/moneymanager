@@ -1,6 +1,7 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/formatCurrency';
+import { getCategoryIcon } from '../utils/categories';
 
 export const DashboardView: React.FC = () => {
   const {
@@ -9,45 +10,6 @@ export const DashboardView: React.FC = () => {
     transactions,
     setIsTransferModalOpen,
   } = useApp();
-
-  const getCategoryIcon = (category: string) => {
-    switch (category.toLowerCase()) {
-      case 'arriendo':
-      case 'hogar':
-      case 'vivienda':
-        return 'home';
-      case 'servicios':
-        return 'electric_bolt';
-      case 'suscripciones':
-        return 'subscriptions';
-      case 'transporte':
-      case 'auto':
-        return 'directions_bus';
-      case 'compras':
-        return 'shopping_bag';
-      case 'comida':
-      case 'alimentación':
-        return 'restaurant';
-      case 'mercado':
-        return 'local_grocery_store';
-      case 'educación':
-        return 'school';
-      case 'banco':
-        return 'account_balance';
-      case 'salario':
-      case 'ingresos':
-        return 'payments';
-      case 'i. extra':
-      case 'ingreso extra':
-        return 'monetization_on';
-      case 'deuda':
-        return 'credit_score';
-      case 'inversiones':
-        return 'monitoring';
-      default:
-        return 'label';
-    }
-  };
 
   return (
     <main className="max-w-[1280px] mx-auto px-container-padding-mobile md:px-container-padding-desktop pb-32 pt-stack-lg">

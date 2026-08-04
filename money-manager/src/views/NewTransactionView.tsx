@@ -54,7 +54,7 @@ export const NewTransactionView: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -69,8 +69,8 @@ export const NewTransactionView: React.FC = () => {
       return;
     }
 
-    // Add transaction - triggers global Totals Logic
-    addTransaction({
+    // Add transaction - triggers global Totals Logic and Supabase save
+    await addTransaction({
       type,
       amount: numericAmount,
       name: name.trim(),
