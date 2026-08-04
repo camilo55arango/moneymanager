@@ -80,6 +80,15 @@ export const calculateNextDueDate = (
   return `${year}-${month}-${day}`;
 };
 
+export const sortPendingItems = (items: PendingItem[]): PendingItem[] => {
+  return [...items].sort((a, b) => {
+    if (!a.dueDate && !b.dueDate) return 0;
+    if (!a.dueDate) return 1;
+    if (!b.dueDate) return -1;
+    return a.dueDate.localeCompare(b.dueDate);
+  });
+};
+
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -200,17 +209,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (pendData) {
         setPendingItems(
-          pendData.map((p: any) => ({
-            id: p.id,
-            type: p.type,
-            name: p.name,
-            amount: Number(p.amount),
-            category: p.category,
-            dueDate: p.due_date,
-            recurrence: p.recurrence,
-            note: p.note,
-            seriesId: p.series_id,
-          }))
+          sortPendingItems(
+            pendData.map((p: any) => ({
+              id: p.id,
+              type: p.type,
+              name: p.name,
+              amount: Number(p.amount),
+              category: p.category,
+              dueDate: p.due_date,
+              recurrence: p.recurrence,
+              note: p.note,
+              seriesId: p.series_id,
+            }))
+          )
         );
       } else {
         setPendingItems([]);
@@ -595,7 +606,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       itemsToAdd.push(newItem);
     }
 
-    setPendingItems((prev) => [...prev, ...itemsToAdd]);
+    setPendingItems((prev) => sortPendingItems([...prev, ...itemsToAdd]));
 
     if (userId) {
       const dbRows = itemsToAdd.map((it) => ({
@@ -619,43 +630,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updatePendingItem = async (updated: PendingItem) => {
+    const userId = await getActiveUserId();
+    const target = pendingItems.find((p) => p.id === updated.id);
+
     setPendingItems((prev) => {
-      const target = prev.find((p) => p.id === updated.id);
-      if (!target) return prev;
+      const currentTarget = prev.find((p) => p.id === updated.id) || target;
+      if (!currentTarget) return prev;
 
       const isRecurring =
-        (target.seriesId && target.seriesId.length > 0) ||
-        (target.recurrence && target.recurrence !== 'none') ||
+        (currentTarget.seriesId && currentTarget.seriesId.length > 0) ||
+        (currentTarget.recurrence && currentTarget.recurrence !== 'none') ||
         (updated.recurrence && updated.recurrence !== 'none');
 
       if (!isRecurring) {
-        return prev.map((item) => (item.id === updated.id ? updated : item));
+        return sortPendingItems(prev.map((item) => (item.id === updated.id ? updated : item)));
       }
 
-      const seriesId = target.seriesId || 's_' + Date.now();
+      const seriesId = currentTarget.seriesId || 's_' + Date.now();
       const updatedWithSeries = { ...updated, seriesId };
 
       const isMatchingFuture = (p: PendingItem) => {
-        if (p.id === target.id) return false;
+        if (p.id === currentTarget.id) return false;
         const sameSeries =
-          (target.seriesId && p.seriesId && p.seriesId === target.seriesId) ||
-          (p.name === target.name && p.category === target.category && p.type === target.type);
+          (currentTarget.seriesId && p.seriesId && p.seriesId === currentTarget.seriesId) ||
+          (p.name === currentTarget.name && p.category === currentTarget.category && p.type === currentTarget.type);
 
         if (!sameSeries) return false;
 
-        if (target.dueDate && p.dueDate) {
-          return p.dueDate >= target.dueDate;
+        if (currentTarget.dueDate && p.dueDate) {
+          return p.dueDate >= currentTarget.dueDate;
         }
         return true;
       };
 
       if (!updated.recurrence || updated.recurrence === 'none') {
-        return prev
-          .filter((p) => !isMatchingFuture(p))
-          .map((p) => (p.id === updated.id ? { ...updated, seriesId: undefined } : p));
+        return sortPendingItems(
+          prev
+            .filter((p) => !isMatchingFuture(p))
+            .map((p) => (p.id === updated.id ? { ...updated, seriesId: undefined } : p))
+        );
       }
 
-      const remaining = prev.filter((p) => p.id !== target.id && !isMatchingFuture(p));
+      const remaining = prev.filter((p) => p.id !== currentTarget.id && !isMatchingFuture(p));
       const futureItems: PendingItem[] = [];
       const timestamp = Date.now();
       for (let i = 1; i <= 12; i++) {
@@ -667,14 +683,97 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         });
       }
 
-      return [...remaining, updatedWithSeries, ...futureItems];
+      return sortPendingItems([...remaining, updatedWithSeries, ...futureItems]);
     });
+
+    if (userId && target) {
+      const isRecurring =
+        (target.seriesId && target.seriesId.length > 0) ||
+        (target.recurrence && target.recurrence !== 'none') ||
+        (updated.recurrence && updated.recurrence !== 'none');
+
+      if (!isRecurring) {
+        const { error } = await supabase
+          .from('pending_items')
+          .update({
+            type: updated.type,
+            name: updated.name,
+            amount: updated.amount,
+            category: updated.category,
+            due_date: updated.dueDate,
+            recurrence: updated.recurrence,
+            note: updated.note,
+          })
+          .eq('id', updated.id)
+          .eq('user_id', userId);
+
+        if (error) {
+          console.error('Error actualizando pendiente en Supabase:', error);
+        } else {
+          await loadUserData(userId);
+        }
+      } else {
+        if (target.seriesId) {
+          if (target.dueDate) {
+            await supabase
+              .from('pending_items')
+              .delete()
+              .eq('user_id', userId)
+              .eq('series_id', target.seriesId)
+              .gte('due_date', target.dueDate);
+          } else {
+            await supabase
+              .from('pending_items')
+              .delete()
+              .eq('user_id', userId)
+              .eq('series_id', target.seriesId);
+          }
+        } else {
+          await supabase
+            .from('pending_items')
+            .delete()
+            .eq('user_id', userId)
+            .eq('id', updated.id);
+        }
+
+        const seriesId = target.seriesId || 's_' + Date.now();
+        const updatedWithSeries = { ...updated, seriesId };
+        const itemsToInsert: Omit<PendingItem, 'id'>[] = [updatedWithSeries];
+
+        if (updated.recurrence && updated.recurrence !== 'none') {
+          for (let i = 1; i <= 12; i++) {
+            const nextDueDate = calculateNextDueDate(updated.dueDate, updated.recurrence, i);
+            itemsToInsert.push({
+              ...updatedWithSeries,
+              dueDate: nextDueDate,
+            });
+          }
+        }
+
+        const dbRows = itemsToInsert.map((it) => ({
+          user_id: userId,
+          type: it.type,
+          name: it.name,
+          amount: it.amount,
+          category: it.category,
+          due_date: it.dueDate,
+          recurrence: it.recurrence,
+          note: it.note,
+          series_id: it.seriesId,
+        }));
+
+        const { error } = await supabase.from('pending_items').insert(dbRows);
+        if (error) {
+          console.error('Error re-insertando serie de pendientes en Supabase:', error);
+        } else {
+          await loadUserData(userId);
+        }
+      }
+    }
   };
 
   const deletePendingItem = async (id: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const userId = session?.user?.id;
-
+    const userId = await getActiveUserId();
     const target = pendingItems.find((p) => p.id === id);
 
     setPendingItems((prev) => prev.filter((p) => p.id !== id));

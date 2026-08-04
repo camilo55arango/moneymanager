@@ -15,6 +15,16 @@ export const PendientesView: React.FC = () => {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [payModalItem, setPayModalItem] = useState<PendingItem | null>(null);
   const [payAmountInput, setPayAmountInput] = useState<string>('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    '0000-00_MESES_ANTERIORES': true,
+  });
+
+  const toggleGroupCollapse = (groupKey: string) => {
+    setCollapsedGroups((prev) => ({
+      ...prev,
+      [groupKey]: !prev[groupKey],
+    }));
+  };
 
   // Reference date: today
   const today = new Date();
@@ -187,6 +197,16 @@ export const PendientesView: React.FC = () => {
     }
   });
 
+  // Sort items within each group chronologically by payment due date (dueDate)
+  Object.values(groupMap).forEach((group) => {
+    group.items.sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+      return a.dueDate.localeCompare(b.dueDate);
+    });
+  });
+
   // Sort groups: MESES ANTERIORES -> CHRONOLOGICAL MONTHS -> SIN FECHA
   const groupsList = Object.values(groupMap).sort((a, b) => {
     if (a.groupKey === '0000-00_MESES_ANTERIORES') return -1;
@@ -238,133 +258,149 @@ export const PendientesView: React.FC = () => {
           No hay pendientes programados. Haz clic en "Nuevo Pendiente" para agregar uno.
         </div>
       ) : (
-        groupsList.map((group) => (
-          <section key={group.groupKey} className="mb-stack-lg">
-            {/* Section Header */}
-            <h3 className="font-label-caps text-label-caps text-on-surface-variant mb-stack-sm flex items-center gap-2 font-bold uppercase tracking-wider">
-              <span>{group.groupTitle}</span>
-              <span className="h-px flex-1 bg-outline-variant/40" />
-              <div className="ml-auto flex flex-col items-end text-[10px] leading-tight font-numeric-data text-on-surface">
-                <span>INGRESO: {formatCurrency(group.totalIncome)}</span>
-                <span>GASTO: {formatCurrency(group.totalExpense)}</span>
-              </div>
-            </h3>
+        groupsList.map((group) => {
+          const isCollapsed = !!collapsedGroups[group.groupKey];
 
-            {/* List of items in group */}
-            <div className="space-y-3">
-              {group.items.map((item) => {
-                const days = calculateDaysRemaining(item.dueDate);
-                const { text: daysText, subtext } = formatDaysText(days, item.dueDate);
-                const badgeStyle = getBadgeStyle(days);
-                const isActive = activeItemId === item.id;
+          return (
+            <section key={group.groupKey} className="mb-stack-lg">
+              {/* Section Header */}
+              <h3
+                onClick={() => toggleGroupCollapse(group.groupKey)}
+                className="font-label-caps text-label-caps text-on-surface-variant mb-stack-sm flex items-center gap-2 font-bold uppercase tracking-wider cursor-pointer select-none hover:text-primary transition-colors group/header"
+              >
+                <span
+                  className="material-symbols-outlined text-base transition-transform duration-200 text-outline group-hover/header:text-primary"
+                  style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+                >
+                  expand_more
+                </span>
+                <span>{group.groupTitle}</span>
+                <span className="text-[11px] font-normal text-outline">({group.items.length})</span>
+                <span className="h-px flex-1 bg-outline-variant/40" />
+                <div className="ml-auto flex flex-col items-end text-[10px] leading-tight font-numeric-data text-on-surface">
+                  <span>INGRESO: {formatCurrency(group.totalIncome)}</span>
+                  <span>GASTO: {formatCurrency(group.totalExpense)}</span>
+                </div>
+              </h3>
 
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleRowClick(item.id)}
-                    className={`item-row relative overflow-hidden bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/30 transition-all cursor-pointer ${
-                      isActive ? 'is-active ring-2 ring-primary/20' : 'hover:border-primary/40'
-                    }`}
-                  >
-                    <div className="p-4 flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-fixed text-on-primary-fixed">
-                          <span className="material-symbols-outlined">
-                            {getCategoryIcon(item.category)}
-                          </span>
-                        </div>
+              {/* List of items in group */}
+              {!isCollapsed && (
+                <div className="space-y-3">
+                  {group.items.map((item) => {
+                    const days = calculateDaysRemaining(item.dueDate);
+                    const { text: daysText, subtext } = formatDaysText(days, item.dueDate);
+                    const badgeStyle = getBadgeStyle(days);
+                    const isActive = activeItemId === item.id;
 
-                        <div>
-                          <h4 className="font-numeric-data text-numeric-data text-on-surface font-semibold">
-                            {item.name}
-                          </h4>
-                          <p className="font-body-md text-body-md text-outline text-xs flex items-center gap-1.5 flex-wrap">
-                            <span>{item.category}</span>
-                            {item.recurrence && item.recurrence !== 'none' && (
-                              <span className="inline-flex items-center text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
-                                <span className="material-symbols-outlined text-[12px] mr-0.5">repeat</span>
-                                {getRecurrenceText(item.recurrence)}
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleRowClick(item.id)}
+                        className={`item-row relative overflow-hidden bg-surface-container-lowest rounded-xl shadow-xs border border-outline-variant/30 transition-all cursor-pointer ${
+                          isActive ? 'is-active ring-2 ring-primary/20' : 'hover:border-primary/40'
+                        }`}
+                      >
+                        <div className="p-4 flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-fixed text-on-primary-fixed">
+                              <span className="material-symbols-outlined">
+                                {getCategoryIcon(item.category)}
                               </span>
-                            )}
-                          </p>
-                        </div>
-                      </div>
+                            </div>
 
-                      <div className="text-right">
-                        <span
-                          className={`block font-numeric-data text-numeric-data font-bold ${
-                            item.amount === 0
-                              ? 'text-outline-variant'
-                              : item.type === 'expense'
-                              ? 'text-error'
-                              : 'text-secondary'
+                            <div>
+                              <h4 className="font-numeric-data text-numeric-data text-on-surface font-semibold">
+                                {item.name}
+                              </h4>
+                              <p className="font-body-md text-body-md text-outline text-xs flex items-center gap-1.5 flex-wrap">
+                                <span>{item.category}</span>
+                                {item.recurrence && item.recurrence !== 'none' && (
+                                  <span className="inline-flex items-center text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
+                                    <span className="material-symbols-outlined text-[12px] mr-0.5">repeat</span>
+                                    {getRecurrenceText(item.recurrence)}
+                                  </span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-right">
+                            <span
+                              className={`block font-numeric-data text-numeric-data font-bold ${
+                                item.amount === 0
+                                  ? 'text-outline-variant'
+                                  : item.type === 'expense'
+                                  ? 'text-error'
+                                  : 'text-secondary'
+                              }`}
+                            >
+                              {item.amount === 0 ? 'TBD' : `${item.type === 'expense' ? '-' : '+'}${formatCurrency(item.amount)}`}
+                            </span>
+
+                            <span
+                              className={`inline-block px-2 py-0.5 text-[10px] rounded uppercase mt-0.5 ${badgeStyle}`}
+                            >
+                              {daysText}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Actions Overlay */}
+                        <div
+                          className={`item-action-overlay absolute inset-0 bg-surface-container-highest/95 flex items-center justify-center gap-6 z-20 ${
+                            isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                           }`}
                         >
-                          {item.amount === 0 ? 'TBD' : `${item.type === 'expense' ? '-' : '+'}${formatCurrency(item.amount)}`}
-                        </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleEdit(item);
+                            }}
+                            className="flex flex-col items-center gap-1 group/btn cursor-pointer"
+                            title="Editar Pendiente"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover/btn:bg-primary group-hover/btn:text-on-primary transition-colors shadow-xs">
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                            </div>
+                            <span className="text-[10px] font-bold">EDITAR</span>
+                          </button>
 
-                        <span
-                          className={`inline-block px-2 py-0.5 text-[10px] rounded uppercase mt-0.5 ${badgeStyle}`}
-                        >
-                          {daysText}
-                        </span>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePayClick(item);
+                            }}
+                            className="flex flex-col items-center gap-1 group/btn cursor-pointer"
+                            title="Marcar como Pagado"
+                          >
+                            <div className="w-12 h-12 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform">
+                              <span className="material-symbols-outlined">check</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-secondary">PAGADO</span>
+                          </button>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDelete(item.id);
+                            }}
+                            className="flex flex-col items-center gap-1 group/btn cursor-pointer"
+                            title="Eliminar Pendiente"
+                          >
+                            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover/btn:bg-error group-hover/btn:text-on-error transition-colors shadow-xs">
+                              <span className="material-symbols-outlined text-sm">delete</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-error">BORRAR</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
-
-                    {/* Actions Overlay */}
-                    <div
-                      className={`item-action-overlay absolute inset-0 bg-surface-container-highest/95 flex items-center justify-center gap-6 z-20 ${
-                        isActive ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleEdit(item);
-                        }}
-                        className="flex flex-col items-center gap-1 group/btn cursor-pointer"
-                        title="Editar Pendiente"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover/btn:bg-primary group-hover/btn:text-on-primary transition-colors shadow-xs">
-                          <span className="material-symbols-outlined text-sm">edit</span>
-                        </div>
-                        <span className="text-[10px] font-bold">EDITAR</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePayClick(item);
-                        }}
-                        className="flex flex-col items-center gap-1 group/btn cursor-pointer"
-                        title="Marcar como Pagado"
-                      >
-                        <div className="w-12 h-12 rounded-full bg-secondary text-on-secondary flex items-center justify-center shadow-lg transform group-hover/btn:scale-110 transition-transform">
-                          <span className="material-symbols-outlined">check</span>
-                        </div>
-                        <span className="text-[10px] font-bold text-secondary">PAGADO</span>
-                      </button>
-
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDelete(item.id);
-                        }}
-                        className="flex flex-col items-center gap-1 group/btn cursor-pointer"
-                        title="Eliminar Pendiente"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center group-hover/btn:bg-error group-hover/btn:text-on-error transition-colors shadow-xs">
-                          <span className="material-symbols-outlined text-sm">delete</span>
-                        </div>
-                        <span className="text-[10px] font-bold text-error">BORRAR</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        ))
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })
       )}
       {/* Pay Modal for Recurring Items */}
       {payModalItem && (
