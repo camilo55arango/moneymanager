@@ -16,6 +16,7 @@ export const PendientesView: React.FC = () => {
   const [payModalItem, setPayModalItem] = useState<PendingItem | null>(null);
   const [payAmountInput, setPayAmountInput] = useState<string>('');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    'SIN_FECHA': true,
     '0000-00_MESES_ANTERIORES': true,
   });
 
@@ -207,12 +208,12 @@ export const PendientesView: React.FC = () => {
     });
   });
 
-  // Sort groups: MESES ANTERIORES -> CHRONOLOGICAL MONTHS -> SIN FECHA
+  // Sort groups: SIN FECHA -> MESES ANTERIORES -> CHRONOLOGICAL MONTHS
   const groupsList = Object.values(groupMap).sort((a, b) => {
+    if (a.groupKey === 'SIN_FECHA') return -1;
+    if (b.groupKey === 'SIN_FECHA') return 1;
     if (a.groupKey === '0000-00_MESES_ANTERIORES') return -1;
     if (b.groupKey === '0000-00_MESES_ANTERIORES') return 1;
-    if (a.groupKey === 'SIN_FECHA') return 1;
-    if (b.groupKey === 'SIN_FECHA') return -1;
     return a.groupKey.localeCompare(b.groupKey);
   });
 
