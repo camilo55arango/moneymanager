@@ -55,7 +55,8 @@ export const Header: React.FC = () => {
           )}
 
           <h1 className="font-headline-md text-headline-md font-bold text-primary flex items-center gap-2">
-            {getTitle()}
+            <span className="material-symbols-outlined text-primary text-2xl">account_balance_wallet</span>
+            <span>{getTitle()}</span>
           </h1>
         </div>
 
