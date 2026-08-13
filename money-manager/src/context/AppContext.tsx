@@ -24,7 +24,7 @@ interface AppContextType {
   addTransaction: (tx: Omit<Transaction, 'id'>) => void;
   addPendingItem: (item: Omit<PendingItem, 'id'>) => void;
   updatePendingItem: (item: PendingItem) => void;
-  deletePendingItem: (id: string) => void;
+  deletePendingItem: (id: string, deleteAllSeries?: boolean) => void;
   markPendingAsPaid: (id: string, customAmount?: number) => void;
   transferFunds: (amount: number, direction: 'walletToInv' | 'invToWallet') => Promise<boolean>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -772,14 +772,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const deletePendingItem = async (id: string) => {
+  const deletePendingItem = async (id: string, deleteAllSeries: boolean = false) => {
     const userId = await getActiveUserId();
     const target = pendingItems.find((p) => p.id === id);
 
-    setPendingItems((prev) => prev.filter((p) => p.id !== id));
+    if (deleteAllSeries && target?.seriesId) {
+      setPendingItems((prev) => prev.filter((p) => p.seriesId !== target.seriesId));
+    } else {
+      setPendingItems((prev) => prev.filter((p) => p.id !== id));
+    }
 
     if (userId) {
-      if (target?.seriesId) {
+      if (deleteAllSeries && target?.seriesId) {
         await supabase.from('pending_items').delete().eq('user_id', userId).eq('series_id', target.seriesId);
       } else {
         await supabase.from('pending_items').delete().eq('user_id', userId).eq('id', id);
