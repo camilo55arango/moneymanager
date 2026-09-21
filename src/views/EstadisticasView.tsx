@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { formatCurrency } from '../utils/formatCurrency';
 import { Transaction } from '../types';
 
-type AccountScope = 'wallet' | 'investment' | 'all';
+type AccountScope = 'wallet' | 'investment' | 'credit' | 'all';
 type PeriodScope = 'this-month' | '3-months' | '6-months' | 'year' | 'all';
 
 export const EstadisticasView: React.FC = () => {
-  const { transactions, walletBalance, investmentBalance } = useApp();
+  const { transactions, walletBalance, investmentBalance, creditCardBalance } = useApp();
 
   const [accountScope, setAccountScope] = useState<AccountScope>('all');
   const [periodScope, setPeriodScope] = useState<PeriodScope>('this-month');
@@ -58,6 +58,11 @@ export const EstadisticasView: React.FC = () => {
     return tx.category.trim() === 'Inversiones' || tx.paymentMethod === 'Inversiones';
   };
 
+  // Helper to determine if transaction was charged to the credit card
+  const isCreditTx = (tx: Transaction) => {
+    return !isInvestmentTx(tx) && tx.paymentMethod === CREDIT_CARD_METHOD;
+  };
+
   // Filter transactions by account scope and period scope
   const filteredTransactions = useMemo(() => {
     const today = new Date();
@@ -67,8 +72,10 @@ export const EstadisticasView: React.FC = () => {
     return transactions.filter((tx) => {
       // 1. Account Scope Filter
       const isInv = isInvestmentTx(tx);
-      if (accountScope === 'wallet' && isInv) return false;
+      const isCredit = isCreditTx(tx);
+      if (accountScope === 'wallet' && (isInv || isCredit)) return false;
       if (accountScope === 'investment' && !isInv) return false;
+      if (accountScope === 'credit' && !isCredit) return false;
 
       // 2. Period Scope Filter
       if (!tx.date) return true;
@@ -112,8 +119,9 @@ export const EstadisticasView: React.FC = () => {
   const activeAccountBalance = useMemo(() => {
     if (accountScope === 'wallet') return walletBalance;
     if (accountScope === 'investment') return investmentBalance;
+    if (accountScope === 'credit') return creditCardBalance;
     return walletBalance + investmentBalance;
-  }, [accountScope, walletBalance, investmentBalance]);
+  }, [accountScope, walletBalance, investmentBalance, creditCardBalance]);
 
   // Expense categories breakdown
   const expenseCategories = useMemo(() => {
@@ -184,8 +192,10 @@ export const EstadisticasView: React.FC = () => {
 
     transactions.forEach((tx) => {
       const isInv = isInvestmentTx(tx);
-      if (accountScope === 'wallet' && isInv) return;
+      const isCredit = isCreditTx(tx);
+      if (accountScope === 'wallet' && (isInv || isCredit)) return;
       if (accountScope === 'investment' && !isInv) return;
+      if (accountScope === 'credit' && !isCredit) return;
 
       if (!tx.date) return;
       const ym = tx.date.slice(0, 7);
@@ -230,9 +240,11 @@ export const EstadisticasView: React.FC = () => {
             </span>
             <p className="text-sm font-semibold text-on-surface">
               {accountScope === 'wallet'
-                ? 'Estadísticas de Billetera (Efectivo / Débito / Crédito)'
+                ? 'Estadísticas de Billetera (Efectivo / Débito)'
                 : accountScope === 'investment'
                 ? 'Estadísticas de Inversiones'
+                : accountScope === 'credit'
+                ? 'Estadísticas de Tarjeta de Crédito'
                 : 'Estadísticas Consolidadas (Todas las cuentas)'}
             </p>
           </div>
@@ -248,6 +260,18 @@ export const EstadisticasView: React.FC = () => {
             >
               <span className="material-symbols-outlined text-[16px]">account_balance_wallet</span>
               <span>Billetera</span>
+            </button>
+
+            <button
+              onClick={() => setAccountScope('credit')}
+              className={`px-2 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1 flex-1 sm:flex-initial ${
+                accountScope === 'credit'
+                  ? 'bg-primary text-on-primary shadow-sm'
+                  : 'text-on-surface-variant hover:bg-surface-container-high'
+              }`}
+            >
+              <span className="material-symbols-outlined text-[16px]">credit_card</span>
+              <span>Tarjeta</span>
             </button>
 
             <button
@@ -385,6 +409,8 @@ export const EstadisticasView: React.FC = () => {
                 ? 'Saldo Billetera'
                 : accountScope === 'investment'
                 ? 'Saldo Inversiones'
+                : accountScope === 'credit'
+                ? 'Deuda Tarjeta de Crédito'
                 : 'Patrimonio Total'}
             </span>
             <div className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center">

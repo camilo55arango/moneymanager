@@ -5,28 +5,35 @@ import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
 
 const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_NAMES;
 
+export const CREDIT_CARD_METHOD = 'Tarjeta de Crédito';
+
 interface AppContextType {
   walletBalance: number;
   investmentBalance: number;
+  creditCardBalance: number;
+  creditLimit: number;
   categories: string[];
   transactions: Transaction[];
   pendingItems: PendingItem[];
   currentView: ViewMode;
   isTransferModalOpen: boolean;
+  isPayCreditModalOpen: boolean;
   editingPendingItem: PendingItem | null;
   user: UserProfile;
   setCurrentView: (view: ViewMode) => void;
   setIsTransferModalOpen: (open: boolean) => void;
+  setIsPayCreditModalOpen: (open: boolean) => void;
   setEditingPendingItem: (item: PendingItem | null) => void;
-  updateBalances: (wallet: number, investment: number) => void;
+  updateBalances: (wallet: number, investment: number, creditLimit?: number, creditBalance?: number) => void;
   addCategory: (category: string) => void;
   removeCategory: (category: string) => void;
   addTransaction: (tx: Omit<Transaction, 'id'>) => void;
   addPendingItem: (item: Omit<PendingItem, 'id'>) => void;
   updatePendingItem: (item: PendingItem) => void;
   deletePendingItem: (id: string, deleteAllSeries?: boolean) => void;
-  markPendingAsPaid: (id: string, customAmount?: number) => void;
+  markPendingAsPaid: (id: string, customAmount?: number, account?: string) => void;
   transferFunds: (amount: number, direction: 'walletToInv' | 'invToWallet') => Promise<boolean>;
+  payCreditCard: (amount: number) => Promise<boolean>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   register: (name: string, email: string, password: string, avatarUrl?: string) => Promise<{ success: boolean; error?: string; confirmationSent?: boolean }>;
   updateProfile: (name: string, avatarUrl: string) => Promise<{ success: boolean; error?: string }>;
@@ -94,12 +101,15 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [investmentBalance, setInvestmentBalance] = useState<number>(0);
+  const [creditCardBalance, setCreditCardBalance] = useState<number>(0);
+  const [creditLimit, setCreditLimit] = useState<number>(0);
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
 
   const [currentView, setCurrentView] = useState<ViewMode>('login');
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [isPayCreditModalOpen, setIsPayCreditModalOpen] = useState(false);
   const [editingPendingItem, setEditingPendingItem] = useState<PendingItem | null>(null);
 
   const [user, setUser] = useState<UserProfile>(() => {
@@ -145,6 +155,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setPendingItems([]);
         setWalletBalance(0);
         setInvestmentBalance(0);
+        setCreditCardBalance(0);
+        setCreditLimit(0);
         setCurrentView('login');
       }
     });
@@ -159,20 +171,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // 1. Fetch Wallets
       const { data: walletData } = await supabase
         .from('wallets')
-        .select('wallet_balance, investment_balance')
+        .select('*')
         .eq('user_id', userId)
         .maybeSingle();
 
       if (walletData) {
         setWalletBalance(Number(walletData.wallet_balance) || 0);
         setInvestmentBalance(Number(walletData.investment_balance) || 0);
+        setCreditCardBalance(Number(walletData.credit_balance) || 0);
+        setCreditLimit(Number(walletData.credit_limit) || 0);
       } else {
         await supabase.from('wallets').upsert(
-          { user_id: userId, wallet_balance: 0, investment_balance: 0 },
+          { user_id: userId, wallet_balance: 0, investment_balance: 0, credit_balance: 0, credit_limit: 0 },
           { onConflict: 'user_id' }
         );
         setWalletBalance(0);
         setInvestmentBalance(0);
+        setCreditCardBalance(0);
+        setCreditLimit(0);
       }
 
       // 2. Fetch Transactions
@@ -439,9 +455,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 1. Initial Setup logic
-  const updateBalances = async (wallet: number, investment: number) => {
+  const updateBalances = async (
+    wallet: number,
+    investment: number,
+    newCreditLimit: number = creditLimit,
+    newCreditBalance: number = creditCardBalance
+  ) => {
     setWalletBalance(wallet);
     setInvestmentBalance(investment);
+    setCreditLimit(newCreditLimit);
+    setCreditCardBalance(newCreditBalance);
 
     const userId = await getActiveUserId();
     if (userId) {
@@ -450,6 +473,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           user_id: userId,
           wallet_balance: wallet,
           investment_balance: investment,
+          credit_limit: newCreditLimit,
+          credit_balance: newCreditBalance,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }
@@ -508,11 +533,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // 2. Crucial Totals Logic for Transactions
   const applyTotalsLogic = async (category: string, amount: number, type: 'income' | 'expense', paymentMethod?: string) => {
-    const isInvestment = category.trim() === 'Inversiones' || paymentMethod === 'Inversiones';
+    const isCredit = paymentMethod === CREDIT_CARD_METHOD;
+    const isInvestment = !isCredit && (category.trim() === 'Inversiones' || paymentMethod === 'Inversiones');
     let newWallet = walletBalance;
     let newInv = investmentBalance;
+    let newCredit = creditCardBalance;
 
-    if (isInvestment) {
+    if (isCredit) {
+      // A credit card expense doesn't touch the wallet yet — it only grows the debt
+      // until it's paid off via payCreditCard().
+      newCredit = type === 'expense' ? creditCardBalance + amount : creditCardBalance - amount;
+      setCreditCardBalance(newCredit);
+    } else if (isInvestment) {
       newInv = type === 'income' ? investmentBalance + amount : investmentBalance - amount;
       setInvestmentBalance(newInv);
     } else {
@@ -527,6 +559,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           user_id: userId,
           wallet_balance: newWallet,
           investment_balance: newInv,
+          credit_balance: newCredit,
           updated_at: new Date().toISOString(),
         },
         { onConflict: 'user_id' }
@@ -791,12 +824,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const markPendingAsPaid = async (id: string, customAmount?: number) => {
+  const markPendingAsPaid = async (id: string, customAmount?: number, account?: string) => {
     const itemToPay = pendingItems.find((p) => p.id === id);
     if (!itemToPay) return;
 
     const paidAmount =
       customAmount !== undefined && !isNaN(customAmount) ? customAmount : itemToPay.amount;
+
+    const paymentMethod =
+      itemToPay.category.trim() === 'Inversiones' ? 'Inversiones' : account || 'Billetera';
 
     await addTransaction({
       type: itemToPay.type,
@@ -804,7 +840,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       amount: paidAmount,
       category: itemToPay.category,
       date: new Date().toISOString().split('T')[0],
-      paymentMethod: itemToPay.category.trim() === 'Inversiones' ? 'investment' : 'debit',
+      paymentMethod,
       note: itemToPay.note || 'Pendiente completado',
       status: itemToPay.type === 'income' ? 'received' : 'paid',
     });
@@ -886,20 +922,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return true;
   };
 
+  // 5. Pay down the credit card debt from the wallet
+  const payCreditCard = async (amount: number): Promise<boolean> => {
+    if (amount <= 0) return false;
+    if (amount > walletBalance) return false;
+    if (amount > creditCardBalance) return false;
+
+    const newWallet = walletBalance - amount;
+    const newCredit = creditCardBalance - amount;
+
+    setWalletBalance(newWallet);
+    setCreditCardBalance(newCredit);
+
+    const todayDate = new Date().toISOString().split('T')[0];
+    const newTx: Transaction = {
+      id: 'tx_creditpay_' + Date.now(),
+      type: 'expense',
+      name: 'Pago Tarjeta de Crédito',
+      amount,
+      category: 'Deuda',
+      date: todayDate,
+      paymentMethod: 'Billetera',
+      note: 'Abono a la deuda de la tarjeta de crédito',
+      status: 'paid',
+    };
+    setTransactions((prev) => [newTx, ...prev]);
+
+    const userId = await getActiveUserId();
+    if (userId) {
+      const { error: walletError } = await supabase.from('wallets').upsert(
+        {
+          user_id: userId,
+          wallet_balance: newWallet,
+          investment_balance: investmentBalance,
+          credit_balance: newCredit,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id' }
+      );
+      if (walletError) console.error('Error actualizando saldos en pago de tarjeta:', walletError);
+
+      const { error: txError } = await supabase.from('transactions').insert({
+        user_id: userId,
+        type: newTx.type,
+        name: newTx.name,
+        amount: newTx.amount,
+        category: newTx.category,
+        date: newTx.date,
+        payment_method: newTx.paymentMethod,
+        note: newTx.note,
+        status: newTx.status,
+      });
+      if (txError) console.error('Error registrando transacción de pago de tarjeta:', txError);
+    }
+
+    return true;
+  };
+
   return (
     <AppContext.Provider
       value={{
         walletBalance,
         investmentBalance,
+        creditCardBalance,
+        creditLimit,
         categories,
         transactions,
         pendingItems,
         currentView,
         isTransferModalOpen,
+        isPayCreditModalOpen,
         editingPendingItem,
         user,
         setCurrentView,
         setIsTransferModalOpen,
+        setIsPayCreditModalOpen,
         setEditingPendingItem,
         updateBalances,
         addCategory,
@@ -910,6 +1007,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         deletePendingItem,
         markPendingAsPaid,
         transferFunds,
+        payCreditCard,
         login,
         register,
         updateProfile,

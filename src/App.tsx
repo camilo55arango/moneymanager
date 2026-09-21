@@ -3,6 +3,7 @@ import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { TransferModal } from './components/TransferModal';
+import { PayCreditCardModal } from './components/PayCreditCardModal';
 import { DashboardView } from './views/DashboardView';
 import { PendientesView } from './views/PendientesView';
 import { InitialSetupView } from './views/InitialSetupView';
@@ -27,6 +28,7 @@ const MainContent: React.FC = () => {
         {currentView === 'new-pending' && <NewPendingView />}
       </div>
       <TransferModal />
+      <PayCreditCardModal />
       <BottomNav />
     </div>
   );

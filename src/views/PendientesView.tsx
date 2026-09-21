@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { PendingItem } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 
@@ -15,6 +15,7 @@ export const PendientesView: React.FC = () => {
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [payModalItem, setPayModalItem] = useState<PendingItem | null>(null);
   const [payAmountInput, setPayAmountInput] = useState<string>('');
+  const [payAccount, setPayAccount] = useState<string>('Billetera');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     'SIN_FECHA': true,
     '0000-00_MESES_ANTERIORES': true,
@@ -227,14 +228,10 @@ export const PendientesView: React.FC = () => {
   };
 
   const handlePayClick = (item: PendingItem) => {
-    if ((item.recurrence && item.recurrence !== 'none') || item.amount === 0) {
-      setPayModalItem(item);
-      setPayAmountInput(item.amount ? item.amount.toString() : '');
-      setActiveItemId(null);
-    } else {
-      markPendingAsPaid(item.id);
-      setActiveItemId(null);
-    }
+    setPayModalItem(item);
+    setPayAmountInput(item.amount ? item.amount.toString() : '');
+    setPayAccount('Billetera');
+    setActiveItemId(null);
   };
 
   const handleDelete = (id: string) => {
@@ -455,6 +452,52 @@ export const PendientesView: React.FC = () => {
               </div>
             </div>
 
+            {/* Account selector */}
+            {payModalItem.category.trim() === 'Inversiones' ? (
+              <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary flex items-center gap-2">
+                <span className="material-symbols-outlined text-base">monitoring</span>
+                <span className="font-semibold">Este pendiente siempre se paga desde Inversiones.</span>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                  Pagar con
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPayAccount('Billetera')}
+                    className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors cursor-pointer ${
+                      payAccount === 'Billetera'
+                        ? 'bg-primary text-on-primary border-primary'
+                        : 'bg-surface-container border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">account_balance_wallet</span>
+                    <span>Billetera</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPayAccount(CREDIT_CARD_METHOD)}
+                    className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors cursor-pointer ${
+                      payAccount === CREDIT_CARD_METHOD
+                        ? 'bg-primary text-on-primary border-primary'
+                        : 'bg-surface-container border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">credit_card</span>
+                    <span>Tarjeta de Crédito</span>
+                  </button>
+                </div>
+                {payAccount === CREDIT_CARD_METHOD && (
+                  <p className="text-[11px] text-secondary font-semibold flex items-center gap-1 pt-0.5">
+                    <span className="material-symbols-outlined text-sm">info</span>
+                    Se sumará a la deuda de la tarjeta, sin afectar la Billetera todavía.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Quick action: Keep current value */}
             <button
               type="button"
@@ -485,7 +528,8 @@ export const PendientesView: React.FC = () => {
                   const finalAmount = parseFloat(payAmountInput);
                   markPendingAsPaid(
                     payModalItem.id,
-                    isNaN(finalAmount) ? payModalItem.amount : finalAmount
+                    isNaN(finalAmount) ? payModalItem.amount : finalAmount,
+                    payAccount
                   );
                   setPayModalItem(null);
                 }}

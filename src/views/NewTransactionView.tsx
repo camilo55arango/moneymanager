@@ -224,9 +224,16 @@ export const NewTransactionView: React.FC = () => {
                   className="w-full border-none focus:ring-0 font-body-lg text-body-lg p-0 bg-transparent text-on-surface cursor-pointer outline-none"
                 >
                   <option value="Billetera">Billetera</option>
+                  <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
                   <option value="Inversiones">Inversiones</option>
                 </select>
               </div>
+              {account === 'Tarjeta de Crédito' && type === 'expense' && (
+                <p className="text-xs text-secondary font-semibold mt-2 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">info</span>
+                  Se sumará a la deuda de tu tarjeta. No descuenta la Billetera hasta que la pagues.
+                </p>
+              )}
             </div>
 
             {/* Description / Note Field */}

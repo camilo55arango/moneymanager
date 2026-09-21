@@ -6,6 +6,8 @@ export const InitialSetupView: React.FC = () => {
   const {
     walletBalance,
     investmentBalance,
+    creditLimit,
+    creditCardBalance,
     categories,
     updateBalances,
     addCategory,
@@ -15,6 +17,8 @@ export const InitialSetupView: React.FC = () => {
 
   const [walletInput, setWalletInput] = useState<string>(formatInputNumber(walletBalance));
   const [investmentInput, setInvestmentInput] = useState<string>(formatInputNumber(investmentBalance));
+  const [creditLimitInput, setCreditLimitInput] = useState<string>(formatInputNumber(creditLimit));
+  const [creditBalanceInput, setCreditBalanceInput] = useState<string>(formatInputNumber(creditCardBalance));
   const [newCategoryName, setNewCategoryName] = useState<string>('');
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
@@ -38,8 +42,10 @@ export const InitialSetupView: React.FC = () => {
 
     const w = parseFormattedNumber(walletInput);
     const inv = parseFormattedNumber(investmentInput);
+    const limit = parseFormattedNumber(creditLimitInput) || 0;
+    const debt = parseFormattedNumber(creditBalanceInput) || 0;
 
-    await updateBalances(w, inv);
+    await updateBalances(w, inv, limit, debt);
 
     setIsSaving(false);
     setCurrentView('dashboard');
@@ -100,6 +106,43 @@ export const InitialSetupView: React.FC = () => {
                 className="w-full bg-transparent border-none focus:ring-0 font-numeric-data text-numeric-data text-primary px-2 py-3 outline-none"
               />
             </div>
+          </div>
+
+          {/* Credit Card Limit Field */}
+          <div className="flex flex-col gap-unit">
+            <label className="font-label-caps text-label-caps text-on-surface-variant font-semibold">
+              CUPO TARJETA DE CRÉDITO
+            </label>
+            <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all duration-200">
+              <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={creditLimitInput}
+                onChange={(e) => setCreditLimitInput(formatInputNumber(e.target.value))}
+                className="w-full bg-transparent border-none focus:ring-0 font-numeric-data text-numeric-data text-primary px-2 py-3 outline-none"
+              />
+            </div>
+          </div>
+
+          {/* Credit Card Current Debt Field */}
+          <div className="flex flex-col gap-unit">
+            <label className="font-label-caps text-label-caps text-on-surface-variant font-semibold">
+              DEUDA ACTUAL DE LA TARJETA
+            </label>
+            <div className="relative flex items-center bg-surface-container-low rounded-lg border border-outline-variant/50 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all duration-200">
+              <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="0"
+                value={creditBalanceInput}
+                onChange={(e) => setCreditBalanceInput(formatInputNumber(e.target.value))}
+                className="w-full bg-transparent border-none focus:ring-0 font-numeric-data text-numeric-data text-primary px-2 py-3 outline-none"
+              />
+            </div>
+            <p className="text-[11px] text-outline">Úsalo para corregir manualmente el saldo si no coincide con tus registros.</p>
           </div>
         </section>
 

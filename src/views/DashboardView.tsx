@@ -7,14 +7,19 @@ export const DashboardView: React.FC = () => {
   const {
     walletBalance,
     investmentBalance,
+    creditCardBalance,
+    creditLimit,
     transactions,
     setIsTransferModalOpen,
+    setIsPayCreditModalOpen,
   } = useApp();
+
+  const availableCredit = Math.max(creditLimit - creditCardBalance, 0);
 
   return (
     <main className="max-w-[1280px] mx-auto px-container-padding-mobile md:px-container-padding-desktop pb-32 pt-stack-lg">
       {/* Dashboard Hero Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg mb-stack-lg">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-stack-lg mb-stack-lg">
         {/* Total Wallet Card */}
         <div className="bg-primary text-on-primary p-3.5 sm:p-6 rounded-xl shadow-[0_15px_35px_-10px_rgba(15,23,42,0.3)] relative overflow-hidden group transition-transform duration-300 hover:scale-[1.01]">
           <div className="absolute -right-12 -top-12 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
@@ -61,6 +66,35 @@ export const DashboardView: React.FC = () => {
             <span className="font-body-md italic text-[10px] sm:text-xs">
               Afectado exclusivamente por la categoría "Inversiones"
             </span>
+          </div>
+        </div>
+
+        {/* Total Tarjeta de Crédito Card */}
+        <div className="bg-surface-container-lowest border border-outline-variant p-3.5 sm:p-6 rounded-xl shadow-[0_4px_15px_0_rgba(0,0,0,0.04)] relative overflow-hidden transition-transform duration-300 hover:scale-[1.01]">
+          <div className="flex justify-between items-start mb-2.5 sm:mb-4 gap-2">
+            <div>
+              <p className="font-label-caps text-label-caps text-on-surface-variant uppercase tracking-widest font-bold text-[10px] sm:text-xs">
+                DEUDA TARJETA DE CRÉDITO
+              </p>
+              <h2 className="font-display-currency text-error mt-0.5 sm:mt-1 font-bold tracking-tight">
+                {formatCurrency(creditCardBalance)}
+              </h2>
+            </div>
+            <div className="bg-error-container text-on-error-container px-2 py-0.5 sm:py-1 rounded-lg flex items-center gap-1 font-bold shrink-0">
+              <span className="material-symbols-outlined text-[12px] sm:text-[16px]">credit_card</span>
+              <span className="font-label-caps text-[8px] sm:text-[10px]">Crédito</span>
+            </div>
+          </div>
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2 mt-1.5 sm:mt-2 text-on-surface-variant">
+            <span className="font-body-md italic text-[10px] sm:text-xs">
+              {creditLimit > 0 ? `Disponible: ${formatCurrency(availableCredit)}` : 'Sin cupo configurado'}
+            </span>
+            <button
+              onClick={() => setIsPayCreditModalOpen(true)}
+              className="text-[10px] sm:text-xs font-bold text-primary hover:underline cursor-pointer shrink-0"
+            >
+              Pagar
+            </button>
           </div>
         </div>
       </section>
