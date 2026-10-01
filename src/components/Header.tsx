@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../context/AppContext';
+import { ThemeToggle } from './ThemeToggle';
 
 export const Header: React.FC = () => {
   const { currentView, setCurrentView, user, editingTransaction, setEditingTransaction } = useApp();
@@ -64,6 +65,8 @@ export const Header: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
+          <ThemeToggle />
+
           {currentView !== 'login' && (
             <button
               onClick={() => setCurrentView('login')}

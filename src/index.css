@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* El modo oscuro se activa con la clase .dark en <html> (no con la preferencia del sistema) */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-tertiary-fixed-dim: #ffb95f;
   --color-on-tertiary: #ffffff;
@@ -60,9 +63,64 @@
   --spacing-stack-lg: 24px;
 }
 
+/* Modo oscuro: se redefinen los mismos tokens; los colores "fixed" se mantienen iguales en ambos temas */
+html.dark {
+  color-scheme: dark;
+
+  --color-background: #111316;
+  --color-on-background: #e2e4e7;
+  --color-surface: #111316;
+  --color-surface-dim: #111316;
+  --color-surface-bright: #37393c;
+  --color-surface-container-lowest: #1b1e22;
+  --color-surface-container-low: #1f2226;
+  --color-surface-container: #24272c;
+  --color-surface-container-high: #2c3035;
+  --color-surface-container-highest: #363a40;
+  --color-surface-variant: #363a40;
+  --color-on-surface: #e2e4e7;
+  --color-on-surface-variant: #c4c6cf;
+  --color-outline: #8e9099;
+  --color-outline-variant: #3f434a;
+  --color-surface-tint: #bec6e0;
+
+  --color-primary: #f1f3f6;
+  --color-on-primary: #111316;
+  --color-primary-container: #2a3350;
+  --color-on-primary-container: #aab3cf;
+  --color-inverse-primary: #565e74;
+
+  --color-secondary: #c084fc;
+  --color-on-secondary: #2e0a57;
+  --color-secondary-container: #4c1d95;
+  --color-on-secondary-container: #ead8ff;
+
+  --color-tertiary: #ffb95f;
+  --color-on-tertiary: #2a1700;
+  --color-tertiary-container: #653e00;
+  --color-on-tertiary-container: #ffddb8;
+
+  --color-error: #ffb4ab;
+  --color-on-error: #690005;
+  --color-error-container: #93000a;
+  --color-on-error-container: #ffdad6;
+
+  --color-inverse-surface: #e2e4e7;
+  --color-inverse-on-surface: #2d3133;
+}
+
+/* Los formularios usan bg-white directamente; en oscuro se pintan como tarjeta */
+html.dark .bg-white {
+  background-color: var(--color-surface-container-lowest);
+}
+
+html.dark .category-chip.active {
+  background-color: var(--color-primary-container);
+}
+
 body {
-  background-color: #f7f9fb;
-  color: #191c1e;
+  background-color: var(--color-background);
+  color: var(--color-on-background);
   font-family: 'Inter', sans-serif;
   -webkit-tap-highlight-color: transparent;
 }

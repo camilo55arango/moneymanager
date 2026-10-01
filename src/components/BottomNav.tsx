@@ -36,7 +36,7 @@ export const BottomNav: React.FC = () => {
             className="flex items-center gap-3 bg-white text-primary px-4 py-3 rounded-full shadow-xl border border-outline-variant hover:bg-surface-container transition-all active:scale-95 cursor-pointer font-semibold text-sm"
           >
             <span>Nuevo Registro (Gasto/Ingreso)</span>
-            <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center">
               <span className="material-symbols-outlined text-[18px]">add_card</span>
             </div>
           </button>

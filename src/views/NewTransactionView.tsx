@@ -157,7 +157,7 @@ export const NewTransactionView: React.FC = () => {
                 onClick={() => setType('income')}
                 className={`px-8 py-2 rounded-full text-body-md font-semibold transition-all cursor-pointer ${
                   type === 'income'
-                    ? 'bg-primary text-white shadow-md'
+                    ? 'bg-primary text-on-primary shadow-md'
                     : 'text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
@@ -168,7 +168,7 @@ export const NewTransactionView: React.FC = () => {
                 onClick={() => setType('expense')}
                 className={`px-8 py-2 rounded-full text-body-md font-semibold transition-all cursor-pointer ${
                   type === 'expense'
-                    ? 'bg-primary text-white shadow-md'
+                    ? 'bg-primary text-on-primary shadow-md'
                     : 'text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
@@ -314,7 +314,7 @@ export const NewTransactionView: React.FC = () => {
           <div className="max-w-[1280px] mx-auto flex justify-center">
             <button
               type="submit"
-              className="w-full md:max-w-md bg-primary text-white py-4 rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer font-bold"
+              className="w-full md:max-w-md bg-primary text-on-primary py-4 rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer font-bold"
             >
               <span className="material-symbols-outlined">check_circle</span>
               <span>{isEditing ? 'Guardar Cambios' : `Guardar ${type === 'expense' ? 'Gasto' : 'Ingreso'}`}</span>
