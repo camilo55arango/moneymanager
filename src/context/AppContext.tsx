@@ -217,7 +217,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
 
-  const [currentView, setCurrentView] = useState<ViewMode>('login');
+  // Si había una sesión guardada se arranca directo en el panel; si al verificarla
+  // resulta que ya no es válida, fetchSession devuelve al login.
+  const [currentView, setCurrentView] = useState<ViewMode>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('mm_user_profile') || '{}');
+      return saved.isLoggedIn ? 'dashboard' : 'login';
+    } catch {
+      return 'login';
+    }
+  });
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isPayCreditModalOpen, setIsPayCreditModalOpen] = useState(false);
   const [editingPendingItem, setEditingPendingItem] = useState<PendingItem | null>(null);
@@ -249,9 +258,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const fetchSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
+        // Mostrar el panel de una vez, sin esperar a que terminen de cargar los datos
+        setCurrentView((view) => (view === 'login' ? 'dashboard' : view));
         await loadUserProfile(session.user.id, session.user.email || '', session.user.user_metadata);
         await loadUserData(session.user.id);
-        setCurrentView('dashboard');
+      } else {
+        setUser({ name: '', email: '', avatarUrl: '', isLoggedIn: false });
+        setCurrentView('login');
       }
     };
 
