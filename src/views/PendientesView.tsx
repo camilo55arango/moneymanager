@@ -61,6 +61,10 @@ export const PendientesView: React.FC = () => {
     };
   };
 
+  // Día y mes en que se debe pagar, ej. "15 oct"
+  const formatDueDay = (dateStr: string) =>
+    new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
+
   const getBadgeStyle = (days: number | null) => {
     if (days === null) {
       return 'bg-surface-container text-on-surface-variant';
@@ -336,8 +340,9 @@ export const PendientesView: React.FC = () => {
                             </span>
 
                             <span
-                              className={`inline-block px-2 py-0.5 text-[10px] rounded uppercase mt-0.5 ${badgeStyle}`}
+                              className={`inline-block px-2 py-0.5 text-[10px] rounded uppercase mt-0.5 whitespace-nowrap ${badgeStyle}`}
                             >
+                              {item.dueDate && `${formatDueDay(item.dueDate)} · `}
                               {daysText}
                             </span>
                           </div>

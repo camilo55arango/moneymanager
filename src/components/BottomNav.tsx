@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
 export const BottomNav: React.FC = () => {
-  const { currentView, setCurrentView } = useApp();
+  const { currentView, setCurrentView, setEditingTransaction, setEditingPendingItem } = useApp();
   const [showFabMenu, setShowFabMenu] = useState(false);
 
   // Don't render bottom nav in transactional setup/login screens if not needed, or render cleanly
@@ -30,6 +30,7 @@ export const BottomNav: React.FC = () => {
           <button
             onClick={() => {
               setShowFabMenu(false);
+              setEditingTransaction(null);
               setCurrentView('new-transaction');
             }}
             className="flex items-center gap-3 bg-white text-primary px-4 py-3 rounded-full shadow-xl border border-outline-variant hover:bg-surface-container transition-all active:scale-95 cursor-pointer font-semibold text-sm"
@@ -43,6 +44,7 @@ export const BottomNav: React.FC = () => {
           <button
             onClick={() => {
               setShowFabMenu(false);
+              setEditingPendingItem(null);
               setCurrentView('new-pending');
             }}
             className="flex items-center gap-3 bg-primary-container text-white px-4 py-3 rounded-full shadow-xl border border-primary/20 hover:bg-opacity-90 transition-all active:scale-95 cursor-pointer font-semibold text-sm"

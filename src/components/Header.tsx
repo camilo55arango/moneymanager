@@ -2,7 +2,7 @@ import React from 'react';
 import { useApp } from '../context/AppContext';
 
 export const Header: React.FC = () => {
-  const { currentView, setCurrentView, user } = useApp();
+  const { currentView, setCurrentView, user, editingTransaction, setEditingTransaction } = useApp();
 
   const getTitle = () => {
     switch (currentView) {
@@ -15,7 +15,7 @@ export const Header: React.FC = () => {
       case 'estadisticas':
         return 'Estadísticas';
       case 'new-transaction':
-        return 'Agregar Gasto / Ingreso';
+        return editingTransaction ? 'Editar Registro' : 'Agregar Gasto / Ingreso';
       case 'new-pending':
         return 'Nuevo Pendiente';
       case 'login':
@@ -35,7 +35,10 @@ export const Header: React.FC = () => {
           {isFormView ? (
             <button
               aria-label="Atrás"
-              onClick={() => setCurrentView(currentView === 'new-transaction' ? 'dashboard' : 'pendientes')}
+              onClick={() => {
+                setEditingTransaction(null);
+                setCurrentView(currentView === 'new-transaction' ? 'dashboard' : 'pendientes');
+              }}
               className="hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 duration-100 flex items-center justify-center cursor-pointer"
             >
               <span className="material-symbols-outlined text-on-surface">arrow_back</span>

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Transaction, PendingItem, ViewMode, UserProfile } from '../types';
 import { supabase } from '../utils/supabase';
 import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
@@ -6,6 +6,49 @@ import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
 const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_NAMES;
 
 export const CREDIT_CARD_METHOD = 'Tarjeta de Crédito';
+export const TRANSFER_METHOD = 'transfer';
+const CREDIT_PAYMENT_NAME = 'Pago Tarjeta de Crédito';
+
+// Cambio en cada saldo. `credit` es el cambio en la deuda de la tarjeta (positivo = más deuda).
+interface BalanceDelta {
+  wallet: number;
+  investment: number;
+  credit: number;
+}
+
+const isCreditCardPayment = (tx: Pick<Transaction, 'name' | 'category' | 'type'>) =>
+  tx.type === 'expense' && tx.name === CREDIT_PAYMENT_NAME && tx.category === 'Deuda';
+
+// Transferencias y pagos de tarjeta mueven dinero entre dos saldos; se generan desde
+// sus propios modales, así que al editarlos solo se permite cambiar monto, fecha y nota.
+export const isSystemTransaction = (tx: Transaction) =>
+  tx.paymentMethod === TRANSFER_METHOD || isCreditCardPayment(tx);
+
+// Efecto que tiene un movimiento sobre los saldos. Se usa para aplicarlo al crearlo
+// y para revertirlo al editarlo o eliminarlo.
+const getBalanceEffect = (tx: Omit<Transaction, 'id'>): BalanceDelta => {
+  const { amount, type, category, paymentMethod } = tx;
+  const sign = type === 'income' ? 1 : -1;
+
+  if (paymentMethod === TRANSFER_METHOD) {
+    // Gasto = Billetera -> Inversiones, Ingreso = Inversiones -> Billetera
+    return { wallet: sign * amount, investment: -sign * amount, credit: 0 };
+  }
+  if (isCreditCardPayment(tx)) {
+    return { wallet: -amount, investment: 0, credit: -amount };
+  }
+  if (paymentMethod === CREDIT_CARD_METHOD) {
+    // Un gasto con tarjeta no toca la Billetera, solo aumenta la deuda
+    return { wallet: 0, investment: 0, credit: -sign * amount };
+  }
+  if (category.trim() === 'Inversiones' || paymentMethod === 'Inversiones') {
+    return { wallet: 0, investment: sign * amount, credit: 0 };
+  }
+  return { wallet: sign * amount, investment: 0, credit: 0 };
+};
+
+const sortTransactions = (items: Transaction[]): Transaction[] =>
+  [...items].sort((a, b) => b.date.localeCompare(a.date));
 
 interface AppContextType {
   walletBalance: number;
@@ -19,15 +62,19 @@ interface AppContextType {
   isTransferModalOpen: boolean;
   isPayCreditModalOpen: boolean;
   editingPendingItem: PendingItem | null;
+  editingTransaction: Transaction | null;
   user: UserProfile;
   setCurrentView: (view: ViewMode) => void;
   setIsTransferModalOpen: (open: boolean) => void;
   setIsPayCreditModalOpen: (open: boolean) => void;
   setEditingPendingItem: (item: PendingItem | null) => void;
+  setEditingTransaction: (tx: Transaction | null) => void;
   updateBalances: (wallet: number, investment: number, creditLimit?: number, creditBalance?: number) => void;
   addCategory: (category: string) => void;
   removeCategory: (category: string) => void;
   addTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  updateTransaction: (tx: Transaction) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
   addPendingItem: (item: Omit<PendingItem, 'id'>) => void;
   updatePendingItem: (item: PendingItem) => void;
   deletePendingItem: (id: string, deleteAllSeries?: boolean) => void;
@@ -43,6 +90,29 @@ interface AppContextType {
 
 
 
+// Cantidad de ocurrencias futuras (desde hoy) que se mantienen siempre generadas por serie
+const RECURRENCE_HORIZON = 12;
+
+const MONTHS_PER_RECURRENCE: Record<string, number> = {
+  '1m': 1,
+  mensual: 1,
+  '2m': 2,
+  bimensual: 2,
+  '3m': 3,
+  trimestral: 3,
+  '6m': 6,
+  semestral: 6,
+  '12m': 12,
+  anual: 12,
+};
+
+const formatLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const calculateNextDueDate = (
   dueDate: string | null,
   recurrence: string,
@@ -52,39 +122,79 @@ export const calculateNextDueDate = (
 
   const baseDate = dueDate ? new Date(dueDate + 'T00:00:00') : new Date();
 
-  switch (recurrence) {
-    case '1w':
-    case 'semanal':
-      baseDate.setDate(baseDate.getDate() + 7 * stepCount);
-      break;
-    case '1m':
-    case 'mensual':
-      baseDate.setMonth(baseDate.getMonth() + 1 * stepCount);
-      break;
-    case '2m':
-    case 'bimensual':
-      baseDate.setMonth(baseDate.getMonth() + 2 * stepCount);
-      break;
-    case '3m':
-    case 'trimestral':
-      baseDate.setMonth(baseDate.getMonth() + 3 * stepCount);
-      break;
-    case '6m':
-    case 'semestral':
-      baseDate.setMonth(baseDate.getMonth() + 6 * stepCount);
-      break;
-    case '12m':
-    case 'anual':
-      baseDate.setFullYear(baseDate.getFullYear() + 1 * stepCount);
-      break;
-    default:
-      return dueDate;
+  if (recurrence === '1w' || recurrence === 'semanal') {
+    baseDate.setDate(baseDate.getDate() + 7 * stepCount);
+    return formatLocalDate(baseDate);
   }
 
-  const year = baseDate.getFullYear();
-  const month = String(baseDate.getMonth() + 1).padStart(2, '0');
-  const day = String(baseDate.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  const months = MONTHS_PER_RECURRENCE[recurrence];
+  if (!months) return dueDate;
+
+  // Mismo día del mes (15 ene -> 15 feb -> 15 mar). Si el mes destino no tiene ese día,
+  // se usa su último día (31 ene -> 28 feb) en lugar de desbordar al mes siguiente.
+  const originalDay = baseDate.getDate();
+  const target = new Date(baseDate.getFullYear(), baseDate.getMonth() + months * stepCount, 1);
+  const lastDayOfMonth = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  target.setDate(Math.min(originalDay, lastDayOfMonth));
+  return formatLocalDate(target);
+};
+
+// Revisa las series recurrentes del usuario y agrega ocurrencias al final de cada una
+// para que siempre existan RECURRENCE_HORIZON ocurrencias con fecha desde hoy en adelante.
+const replenishRecurringSeries = async (userId: string) => {
+  const { data, error } = await supabase
+    .from('pending_items')
+    .select('*')
+    .eq('user_id', userId)
+    .not('series_id', 'is', null);
+
+  if (error || !data) {
+    if (error) console.error('Error leyendo series recurrentes:', error);
+    return;
+  }
+
+  const today = formatLocalDate(new Date());
+  const seriesMap = new Map<string, any[]>();
+  for (const row of data) {
+    if (!row.due_date || !row.recurrence || row.recurrence === 'none') continue;
+    const rows = seriesMap.get(row.series_id) || [];
+    rows.push(row);
+    seriesMap.set(row.series_id, rows);
+  }
+
+  const rowsToInsert: any[] = [];
+  for (const rows of seriesMap.values()) {
+    let missing = RECURRENCE_HORIZON - rows.filter((r) => r.due_date >= today).length;
+    if (missing <= 0) continue;
+
+    const last = rows.reduce((a, b) => (b.due_date > a.due_date ? b : a));
+    // Se toma como ancla la ocurrencia con el día del mes más alto, para no arrastrar
+    // un día recortado (ej. 28 feb en una serie del 31) al resto de la serie.
+    const anchor = rows.reduce((a, b) =>
+      Number(b.due_date.slice(8, 10)) > Number(a.due_date.slice(8, 10)) ? b : a
+    );
+
+    for (let i = 1; missing > 0 && i <= 1000; i++) {
+      const nextDueDate = calculateNextDueDate(anchor.due_date, last.recurrence, i);
+      if (!nextDueDate || nextDueDate <= last.due_date) continue;
+      rowsToInsert.push({
+        user_id: userId,
+        type: last.type,
+        name: last.name,
+        amount: last.amount,
+        category: last.category,
+        due_date: nextDueDate,
+        recurrence: last.recurrence,
+        note: last.note,
+        series_id: last.series_id,
+      });
+      if (nextDueDate >= today) missing--;
+    }
+  }
+
+  if (rowsToInsert.length === 0) return;
+  const { error: insertError } = await supabase.from('pending_items').insert(rowsToInsert);
+  if (insertError) console.error('Error reponiendo series recurrentes:', insertError);
 };
 
 export const sortPendingItems = (items: PendingItem[]): PendingItem[] => {
@@ -111,6 +221,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isPayCreditModalOpen, setIsPayCreditModalOpen] = useState(false);
   const [editingPendingItem, setEditingPendingItem] = useState<PendingItem | null>(null);
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const replenishPromise = useRef<Promise<void> | null>(null);
 
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('mm_user_profile');
@@ -216,7 +328,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTransactions([]);
       }
 
-      // 3. Fetch Pending Items
+      // 3. Fetch Pending Items (reponiendo antes las series recurrentes).
+      // Se comparte la misma promesa entre cargas simultáneas para no insertar duplicados.
+      if (!replenishPromise.current) {
+        replenishPromise.current = replenishRecurringSeries(userId).finally(() => {
+          replenishPromise.current = null;
+        });
+      }
+      await replenishPromise.current;
+
       const { data: pendData } = await supabase
         .from('pending_items')
         .select('*')
@@ -532,25 +652,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 2. Crucial Totals Logic for Transactions
-  const applyTotalsLogic = async (category: string, amount: number, type: 'income' | 'expense', paymentMethod?: string) => {
-    const isCredit = paymentMethod === CREDIT_CARD_METHOD;
-    const isInvestment = !isCredit && (category.trim() === 'Inversiones' || paymentMethod === 'Inversiones');
-    let newWallet = walletBalance;
-    let newInv = investmentBalance;
-    let newCredit = creditCardBalance;
+  const applyBalanceDelta = async (delta: BalanceDelta) => {
+    if (delta.wallet === 0 && delta.investment === 0 && delta.credit === 0) return;
 
-    if (isCredit) {
-      // A credit card expense doesn't touch the wallet yet — it only grows the debt
-      // until it's paid off via payCreditCard().
-      newCredit = type === 'expense' ? creditCardBalance + amount : creditCardBalance - amount;
-      setCreditCardBalance(newCredit);
-    } else if (isInvestment) {
-      newInv = type === 'income' ? investmentBalance + amount : investmentBalance - amount;
-      setInvestmentBalance(newInv);
-    } else {
-      newWallet = type === 'income' ? walletBalance + amount : walletBalance - amount;
-      setWalletBalance(newWallet);
-    }
+    const newWallet = walletBalance + delta.wallet;
+    const newInv = investmentBalance + delta.investment;
+    const newCredit = creditCardBalance + delta.credit;
+
+    setWalletBalance(newWallet);
+    setInvestmentBalance(newInv);
+    setCreditCardBalance(newCredit);
 
     const userId = await getActiveUserId();
     if (userId) {
@@ -575,8 +686,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       id: 'tx_' + Date.now(),
     };
 
-    await applyTotalsLogic(newTx.category, newTx.amount, newTx.type, newTx.paymentMethod);
-    setTransactions((prev) => [newTx, ...prev]);
+    await applyBalanceDelta(getBalanceEffect(newTx));
+    setTransactions((prev) => sortTransactions([newTx, ...prev]));
 
     if (userId) {
       const { data, error } = await supabase.from('transactions').insert({
@@ -605,8 +716,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           note: data[0].note,
           status: data[0].status,
         };
-        setTransactions((prev) => [savedTx, ...prev.filter((t) => t.id !== newTx.id)]);
+        setTransactions((prev) => sortTransactions([savedTx, ...prev.filter((t) => t.id !== newTx.id)]));
       }
+    }
+  };
+
+  // Al editar se revierte el efecto del movimiento original y se aplica el del nuevo
+  const updateTransaction = async (updated: Transaction) => {
+    const original = transactions.find((t) => t.id === updated.id);
+    if (!original) return;
+
+    const before = getBalanceEffect(original);
+    const after = getBalanceEffect(updated);
+    await applyBalanceDelta({
+      wallet: after.wallet - before.wallet,
+      investment: after.investment - before.investment,
+      credit: after.credit - before.credit,
+    });
+    setTransactions((prev) => sortTransactions(prev.map((t) => (t.id === updated.id ? updated : t))));
+
+    const userId = await getActiveUserId();
+    if (userId) {
+      const { error } = await supabase
+        .from('transactions')
+        .update({
+          type: updated.type,
+          name: updated.name,
+          amount: updated.amount,
+          category: updated.category,
+          date: updated.date,
+          payment_method: updated.paymentMethod,
+          note: updated.note,
+          status: updated.status,
+        })
+        .eq('id', updated.id)
+        .eq('user_id', userId);
+      if (error) console.error('Error actualizando transacción en Supabase:', error);
+    }
+  };
+
+  // Al eliminar se revierte el efecto del movimiento en los saldos
+  const deleteTransaction = async (id: string) => {
+    const original = transactions.find((t) => t.id === id);
+    if (!original) return;
+
+    const effect = getBalanceEffect(original);
+    await applyBalanceDelta({
+      wallet: -effect.wallet,
+      investment: -effect.investment,
+      credit: -effect.credit,
+    });
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+
+    const userId = await getActiveUserId();
+    if (userId) {
+      const { error } = await supabase.from('transactions').delete().eq('id', id).eq('user_id', userId);
+      if (error) console.error('Error eliminando transacción en Supabase:', error);
     }
   };
 
@@ -846,6 +1011,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     });
 
     await deletePendingItem(id);
+
+    // Al pagar una ocurrencia de una serie, se repone la serie para que no se agote
+    if (itemToPay.seriesId) {
+      const userId = await getActiveUserId();
+      if (userId) await loadUserData(userId);
+    }
+  };
+
+  // Cambia el id temporal de un movimiento por el id que le asignó la base de datos
+  const replaceTransactionId = (tempId: string, dbId: string) => {
+    setTransactions((prev) => prev.map((t) => (t.id === tempId ? { ...t, id: dbId } : t)));
   };
 
   // 4. Transfer money between balances
@@ -905,7 +1081,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (transferError) console.error('Error registrando transferencia:', transferError);
 
       // 3. Log movement in transactions table
-      const { error: txError } = await supabase.from('transactions').insert({
+      const { data: txData, error: txError } = await supabase.from('transactions').insert({
         user_id: userId,
         type: newTx.type,
         name: newTx.name,
@@ -915,8 +1091,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         payment_method: newTx.paymentMethod,
         note: newTx.note,
         status: newTx.status,
-      });
+      }).select('id');
       if (txError) console.error('Error registrando transacción de transferencia:', txError);
+      else if (txData && txData[0]) replaceTransactionId(newTx.id, txData[0].id);
     }
 
     return true;
@@ -962,7 +1139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       if (walletError) console.error('Error actualizando saldos en pago de tarjeta:', walletError);
 
-      const { error: txError } = await supabase.from('transactions').insert({
+      const { data: txData, error: txError } = await supabase.from('transactions').insert({
         user_id: userId,
         type: newTx.type,
         name: newTx.name,
@@ -972,8 +1149,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         payment_method: newTx.paymentMethod,
         note: newTx.note,
         status: newTx.status,
-      });
+      }).select('id');
       if (txError) console.error('Error registrando transacción de pago de tarjeta:', txError);
+      else if (txData && txData[0]) replaceTransactionId(newTx.id, txData[0].id);
     }
 
     return true;
@@ -993,15 +1171,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         isTransferModalOpen,
         isPayCreditModalOpen,
         editingPendingItem,
+        editingTransaction,
         user,
         setCurrentView,
         setIsTransferModalOpen,
         setIsPayCreditModalOpen,
         setEditingPendingItem,
+        setEditingTransaction,
         updateBalances,
         addCategory,
         removeCategory,
         addTransaction,
+        updateTransaction,
+        deleteTransaction,
         addPendingItem,
         updatePendingItem,
         deletePendingItem,

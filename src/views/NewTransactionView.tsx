@@ -1,18 +1,37 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, isSystemTransaction } from '../context/AppContext';
 import { TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
 
-export const NewTransactionView: React.FC = () => {
-  const { categories, addTransaction, setCurrentView } = useApp();
+const ACCOUNT_OPTIONS = ['Billetera', 'Tarjeta de Crédito', 'Inversiones'];
 
-  const [type, setType] = useState<TransactionType>('expense');
-  const [amount, setAmount] = useState<string>('');
-  const [name, setName] = useState<string>('');
-  const [selectedCategory, setSelectedCategory] = useState<string>(categories[0] || 'Comida');
-  const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [account, setAccount] = useState<string>('Billetera');
-  const [note, setNote] = useState<string>('');
+export const NewTransactionView: React.FC = () => {
+  const {
+    categories,
+    addTransaction,
+    updateTransaction,
+    editingTransaction,
+    setEditingTransaction,
+    setCurrentView,
+  } = useApp();
+
+  const isEditing = !!editingTransaction;
+  // Transferencias y pagos de tarjeta: solo se editan monto, fecha y nota
+  const isSystemTx = !!editingTransaction && isSystemTransaction(editingTransaction);
+
+  const [type, setType] = useState<TransactionType>(editingTransaction?.type || 'expense');
+  const [amount, setAmount] = useState<string>(
+    editingTransaction ? formatInputNumber(editingTransaction.amount) : ''
+  );
+  const [name, setName] = useState<string>(editingTransaction?.name || '');
+  const [selectedCategory, setSelectedCategory] = useState<string>(
+    editingTransaction?.category || categories[0] || 'Comida'
+  );
+  const [date, setDate] = useState<string>(
+    editingTransaction?.date || new Date().toISOString().split('T')[0]
+  );
+  const [account, setAccount] = useState<string>(editingTransaction?.paymentMethod || 'Billetera');
+  const [note, setNote] = useState<string>(editingTransaction?.note || '');
   const [error, setError] = useState<string | null>(null);
 
   const getCategoryIcon = (cat: string) => {
@@ -69,8 +88,7 @@ export const NewTransactionView: React.FC = () => {
       return;
     }
 
-    // Add transaction - triggers global Totals Logic and Supabase save
-    await addTransaction({
+    const txData = {
       type,
       amount: numericAmount,
       name: name.trim(),
@@ -78,8 +96,16 @@ export const NewTransactionView: React.FC = () => {
       date,
       paymentMethod: account,
       note: note.trim(),
-      status: type === 'income' ? 'received' : 'paid',
-    });
+      status: (type === 'income' ? 'received' : 'paid') as 'received' | 'paid',
+    };
+
+    // Both paths update the balances and save to Supabase
+    if (isEditing && editingTransaction) {
+      await updateTransaction({ ...editingTransaction, ...txData });
+      setEditingTransaction(null);
+    } else {
+      await addTransaction(txData);
+    }
 
     setCurrentView('dashboard');
   };
@@ -108,6 +134,21 @@ export const NewTransactionView: React.FC = () => {
 
         {/* Form Container */}
         <div className="px-container-padding-mobile md:px-container-padding-desktop space-y-stack-lg">
+          {isSystemTx && (
+            <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary flex items-start gap-2">
+              <span className="material-symbols-outlined text-base shrink-0">info</span>
+              <div>
+                <p className="font-semibold">{editingTransaction?.name}</p>
+                <p className="opacity-90 mt-0.5">
+                  Es un movimiento entre saldos, por eso solo puedes cambiar el monto, la fecha y la nota.
+                  Los saldos se ajustan automáticamente.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {!isSystemTx && (
+          <>
           {/* Segmented Control (Pill Style) */}
           <div className="flex justify-center mb-stack-lg">
             <div className="inline-flex p-1 bg-surface-container rounded-full border border-outline-variant">
@@ -192,6 +233,8 @@ export const NewTransactionView: React.FC = () => {
               </p>
             )}
           </div>
+          </>
+          )}
 
           {/* Bento Form Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-lg">
@@ -212,6 +255,7 @@ export const NewTransactionView: React.FC = () => {
             </div>
 
             {/* Account Field */}
+            {!isSystemTx && (
             <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1">
               <label className="font-label-caps text-label-caps text-on-surface-variant mb-2 block uppercase tracking-wider font-semibold">
                 CUENTA
@@ -223,9 +267,11 @@ export const NewTransactionView: React.FC = () => {
                   onChange={(e) => setAccount(e.target.value)}
                   className="w-full border-none focus:ring-0 font-body-lg text-body-lg p-0 bg-transparent text-on-surface cursor-pointer outline-none"
                 >
-                  <option value="Billetera">Billetera</option>
-                  <option value="Tarjeta de Crédito">Tarjeta de Crédito</option>
-                  <option value="Inversiones">Inversiones</option>
+                  {ACCOUNT_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                  {/* Registros antiguos pueden tener otra cuenta guardada */}
+                  {!ACCOUNT_OPTIONS.includes(account) && <option value={account}>{account}</option>}
                 </select>
               </div>
               {account === 'Tarjeta de Crédito' && type === 'expense' && (
@@ -235,6 +281,7 @@ export const NewTransactionView: React.FC = () => {
                 </p>
               )}
             </div>
+            )}
 
             {/* Description / Note Field */}
             <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1 md:col-span-2">
@@ -270,7 +317,7 @@ export const NewTransactionView: React.FC = () => {
               className="w-full md:max-w-md bg-primary text-white py-4 rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer font-bold"
             >
               <span className="material-symbols-outlined">check_circle</span>
-              <span>Guardar {type === 'expense' ? 'Gasto' : 'Ingreso'}</span>
+              <span>{isEditing ? 'Guardar Cambios' : `Guardar ${type === 'expense' ? 'Gasto' : 'Ingreso'}`}</span>
             </button>
           </div>
         </div>
