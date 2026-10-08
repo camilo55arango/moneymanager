@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useApp } from '../context/AppContext';
-import { TransactionType } from '../types';
+import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
+import { PendingEditScope, PendingItem, TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
+import { CREDIT_CARD_CUTOFF_DAY, CREDIT_CARD_PAYMENT_DAY } from '../utils/creditCard';
 
 export const NewPendingView: React.FC = () => {
   const {
@@ -26,7 +27,21 @@ export const NewPendingView: React.FC = () => {
   );
   const [recurrence, setRecurrence] = useState<string>(editingPendingItem?.recurrence || 'none');
   const [note, setNote] = useState<string>(editingPendingItem?.note || '');
+  const [paymentMethod, setPaymentMethod] = useState<string>(
+    editingPendingItem?.paymentMethod === CREDIT_CARD_METHOD ? CREDIT_CARD_METHOD : 'Billetera'
+  );
   const [error, setError] = useState<string | null>(null);
+  // Cambios listos para guardar mientras el usuario elige si aplican a una ocurrencia o a toda la serie
+  const [pendingUpdate, setPendingUpdate] = useState<PendingItem | null>(null);
+
+  const isEditingRecurring =
+    isEditing &&
+    ((editingPendingItem?.recurrence && editingPendingItem.recurrence !== 'none') ||
+      !!editingPendingItem?.seriesId);
+  // Solo los gastos que no son de Inversiones se pueden pagar con tarjeta
+  const canUseCreditCard = type === 'expense' && category.trim() !== 'Inversiones';
+  // Cambiar la repetición solo tiene sentido para toda la serie
+  const recurrenceChanged = !!editingPendingItem && recurrence !== (editingPendingItem.recurrence || 'none');
 
   const getCategoryIcon = (cat: string) => {
     switch (cat.toLowerCase()) {
@@ -76,32 +91,36 @@ export const NewPendingView: React.FC = () => {
       return;
     }
 
-    const parsedAmount = parseFormattedNumber(amount);
+    const itemData = {
+      type,
+      amount: parseFormattedNumber(amount),
+      name: name.trim(),
+      dueDate: dueDate.trim() ? dueDate : null,
+      category,
+      recurrence,
+      note: note.trim(),
+      paymentMethod: type === 'expense' ? (canUseCreditCard ? paymentMethod : 'Billetera') : undefined,
+    };
 
     if (isEditing && editingPendingItem) {
-      await updatePendingItem({
-        ...editingPendingItem,
-        type,
-        amount: parsedAmount,
-        name: name.trim(),
-        dueDate: dueDate.trim() ? dueDate : null,
-        category,
-        recurrence,
-        note: note.trim(),
-      });
-      setEditingPendingItem(null);
-    } else {
-      await addPendingItem({
-        type,
-        amount: parsedAmount,
-        name: name.trim(),
-        dueDate: dueDate.trim() ? dueDate : null,
-        category,
-        recurrence,
-        note: note.trim(),
-      });
+      const updated = { ...editingPendingItem, ...itemData };
+      // En un recurrente se pregunta el alcance antes de guardar
+      if (isEditingRecurring) {
+        setPendingUpdate(updated);
+        return;
+      }
+      await saveUpdate(updated, 'series');
+      return;
     }
 
+    await addPendingItem(itemData);
+    setCurrentView('pendientes');
+  };
+
+  const saveUpdate = async (updated: PendingItem, scope: PendingEditScope) => {
+    setPendingUpdate(null);
+    await updatePendingItem(updated, scope);
+    setEditingPendingItem(null);
     setCurrentView('pendientes');
   };
 
@@ -130,15 +149,13 @@ export const NewPendingView: React.FC = () => {
 
         {/* Form Container */}
         <div className="px-container-padding-mobile md:px-container-padding-desktop space-y-stack-lg">
-          {isEditing &&
-            ((editingPendingItem?.recurrence && editingPendingItem.recurrence !== 'none') ||
-              editingPendingItem?.seriesId) && (
+          {isEditingRecurring && (
               <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary flex items-start gap-2.5">
                 <span className="material-symbols-outlined text-base shrink-0 mt-0.5">repeat</span>
                 <div>
                   <p className="font-semibold">Pendiente recurrente</p>
                   <p className="text-[11px] opacity-90 mt-0.5">
-                    Los cambios realizados afectarán a este registro y a los periodos futuros.
+                    Al guardar podrás elegir si los cambios aplican solo a este o a toda la serie.
                   </p>
                 </div>
               </div>
@@ -258,6 +275,41 @@ export const NewPendingView: React.FC = () => {
             </div>
           </div>
 
+          {/* Payment Method Selector */}
+          {canUseCreditCard && (
+            <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1">
+              <label className="font-label-caps text-label-caps text-on-surface-variant mb-2 block uppercase tracking-wider font-semibold">
+                SE PAGA CON
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'Billetera', icon: 'account_balance_wallet', label: 'Billetera' },
+                  { value: CREDIT_CARD_METHOD, icon: 'credit_card', label: 'Tarjeta de Crédito' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setPaymentMethod(option.value)}
+                    className={`py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border transition-colors cursor-pointer ${
+                      paymentMethod === option.value
+                        ? 'bg-primary text-on-primary border-primary'
+                        : 'bg-surface-container border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-base">{option.icon}</span>
+                    <span>{option.label}</span>
+                  </button>
+                ))}
+              </div>
+              {paymentMethod === CREDIT_CARD_METHOD && (
+                <p className="text-[11px] text-secondary font-semibold flex items-center gap-1 mt-2">
+                  <span className="material-symbols-outlined text-sm">info</span>
+                  Entra al extracto con corte el {CREDIT_CARD_CUTOFF_DAY} y se paga el {CREDIT_CARD_PAYMENT_DAY} del mes siguiente.
+                </p>
+              )}
+            </div>
+          )}
+
           {/* Notes Field */}
           <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1">
             <label className="font-label-caps text-label-caps text-on-surface-variant mb-2 block uppercase tracking-wider font-semibold">
@@ -296,6 +348,64 @@ export const NewPendingView: React.FC = () => {
           </div>
         </div>
       </form>
+
+      {/* Edit Scope Modal for Recurring Items */}
+      {pendingUpdate && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-[60] p-4 animate-fadeIn">
+          <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-2xl">repeat</span>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg text-on-surface">Editar pendiente recurrente</h3>
+                <p className="text-xs text-outline font-medium">¿A qué registros aplican los cambios?</p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={recurrenceChanged}
+              onClick={() => saveUpdate(pendingUpdate, 'single')}
+              className="w-full p-3 rounded-xl border border-outline-variant text-left flex items-start gap-3 transition-colors cursor-pointer hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+            >
+              <span className="material-symbols-outlined text-primary">event</span>
+              <div>
+                <p className="text-sm font-bold text-on-surface">Solo este</p>
+                <p className="text-[11px] text-outline">
+                  {recurrenceChanged
+                    ? 'No disponible: cambiaste la repetición, que aplica a toda la serie.'
+                    : 'Las demás ocurrencias de la serie no cambian.'}
+                </p>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => saveUpdate(pendingUpdate, 'series')}
+              className="w-full p-3 rounded-xl border border-outline-variant text-left flex items-start gap-3 transition-colors cursor-pointer hover:bg-surface-container"
+            >
+              <span className="material-symbols-outlined text-primary">event_repeat</span>
+              <div>
+                <p className="text-sm font-bold text-on-surface">Todos los que se repiten</p>
+                <p className="text-[11px] text-outline">
+                  Aplica a toda la serie. Si cambiaste la fecha o la repetición, se recalculan este y los siguientes.
+                </p>
+              </div>
+            </button>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                onClick={() => setPendingUpdate(null)}
+                className="px-4 py-2.5 rounded-xl border border-outline-variant/60 text-xs font-bold text-on-surface-variant hover:bg-surface-container transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

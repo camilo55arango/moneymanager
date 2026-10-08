@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { Transaction, PendingItem, ViewMode, UserProfile } from '../types';
+import { Transaction, PendingItem, PendingEditScope, ViewMode, UserProfile } from '../types';
 import { supabase } from '../utils/supabase';
 import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
 
@@ -76,7 +76,7 @@ interface AppContextType {
   updateTransaction: (tx: Transaction) => Promise<void>;
   deleteTransaction: (id: string) => Promise<void>;
   addPendingItem: (item: Omit<PendingItem, 'id'>) => void;
-  updatePendingItem: (item: PendingItem) => void;
+  updatePendingItem: (item: PendingItem, scope?: PendingEditScope) => Promise<void>;
   deletePendingItem: (id: string, deleteAllSeries?: boolean) => void;
   markPendingAsPaid: (id: string, customAmount?: number, account?: string) => void;
   transferFunds: (amount: number, direction: 'walletToInv' | 'invToWallet') => Promise<boolean>;
@@ -187,6 +187,7 @@ const replenishRecurringSeries = async (userId: string) => {
         recurrence: last.recurrence,
         note: last.note,
         series_id: last.series_id,
+        payment_method: last.payment_method,
       });
       if (nextDueDate >= today) missing--;
     }
@@ -197,7 +198,19 @@ const replenishRecurringSeries = async (userId: string) => {
   if (insertError) console.error('Error reponiendo series recurrentes:', insertError);
 };
 
-export const sortPendingItems = (items: PendingItem[]): PendingItem[] => {
+// Columnas editables de un pendiente en la tabla pending_items
+const toPendingRow = (item: Omit<PendingItem, 'id'>) => ({
+  type: item.type,
+  name: item.name,
+  amount: item.amount,
+  category: item.category,
+  due_date: item.dueDate,
+  recurrence: item.recurrence,
+  note: item.note,
+  payment_method: item.paymentMethod ?? null,
+});
+
+export const sortPendingItems =(items: PendingItem[]): PendingItem[] => {
   return [...items].sort((a, b) => {
     if (!a.dueDate && !b.dueDate) return 0;
     if (!a.dueDate) return 1;
@@ -369,6 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               recurrence: p.recurrence,
               note: p.note,
               seriesId: p.series_id,
+              paymentMethod: p.payment_method ?? undefined,
             }))
           )
         );
@@ -822,13 +836,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (userId) {
       const dbRows = itemsToAdd.map((it) => ({
         user_id: userId,
-        type: it.type,
-        name: it.name,
-        amount: it.amount,
-        category: it.category,
-        due_date: it.dueDate,
-        recurrence: it.recurrence,
-        note: it.note,
+        ...toPendingRow(it),
         series_id: it.seriesId,
       }));
       const { error } = await supabase.from('pending_items').insert(dbRows);
@@ -840,81 +848,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const updatePendingItem = async (updated: PendingItem) => {
+  // scope 'single' cambia solo esta ocurrencia; 'series' aplica los cambios a toda la serie.
+  // Si en la serie cambia la fecha o la repetición, se regeneran esta ocurrencia y las siguientes.
+  const updatePendingItem = async (updated: PendingItem, scope: PendingEditScope = 'series') => {
     const userId = await getActiveUserId();
     const target = pendingItems.find((p) => p.id === updated.id);
+    if (!target) return;
 
-    setPendingItems((prev) => {
-      const currentTarget = prev.find((p) => p.id === updated.id) || target;
-      if (!currentTarget) return prev;
+    const isRecurrence = (r?: string) => !!r && r !== 'none';
+    const wasRecurring = !!target.seriesId || isRecurrence(target.recurrence);
+    const willRecur = isRecurrence(updated.recurrence);
 
-      const isRecurring =
-        (currentTarget.seriesId && currentTarget.seriesId.length > 0) ||
-        (currentTarget.recurrence && currentTarget.recurrence !== 'none') ||
-        (updated.recurrence && updated.recurrence !== 'none');
+    // 1. Un solo registro: pendiente sin repetición, o el usuario eligió editar solo este
+    if (scope === 'single' || (!wasRecurring && !willRecur)) {
+      setPendingItems((prev) => sortPendingItems(prev.map((p) => (p.id === updated.id ? updated : p))));
 
-      if (!isRecurring) {
-        return sortPendingItems(prev.map((item) => (item.id === updated.id ? updated : item)));
-      }
-
-      const seriesId = currentTarget.seriesId || 's_' + Date.now();
-      const updatedWithSeries = { ...updated, seriesId };
-
-      const isMatchingFuture = (p: PendingItem) => {
-        if (p.id === currentTarget.id) return false;
-        const sameSeries =
-          (currentTarget.seriesId && p.seriesId && p.seriesId === currentTarget.seriesId) ||
-          (p.name === currentTarget.name && p.category === currentTarget.category && p.type === currentTarget.type);
-
-        if (!sameSeries) return false;
-
-        if (currentTarget.dueDate && p.dueDate) {
-          return p.dueDate >= currentTarget.dueDate;
-        }
-        return true;
-      };
-
-      if (!updated.recurrence || updated.recurrence === 'none') {
-        return sortPendingItems(
-          prev
-            .filter((p) => !isMatchingFuture(p))
-            .map((p) => (p.id === updated.id ? { ...updated, seriesId: undefined } : p))
-        );
-      }
-
-      const remaining = prev.filter((p) => p.id !== currentTarget.id && !isMatchingFuture(p));
-      const futureItems: PendingItem[] = [];
-      const timestamp = Date.now();
-      for (let i = 1; i <= 12; i++) {
-        const nextDueDate = calculateNextDueDate(updated.dueDate, updated.recurrence, i);
-        futureItems.push({
-          ...updatedWithSeries,
-          id: `p_${timestamp}_${i}`,
-          dueDate: nextDueDate,
-        });
-      }
-
-      return sortPendingItems([...remaining, updatedWithSeries, ...futureItems]);
-    });
-
-    if (userId && target) {
-      const isRecurring =
-        (target.seriesId && target.seriesId.length > 0) ||
-        (target.recurrence && target.recurrence !== 'none') ||
-        (updated.recurrence && updated.recurrence !== 'none');
-
-      if (!isRecurring) {
+      if (userId) {
         const { error } = await supabase
           .from('pending_items')
-          .update({
-            type: updated.type,
-            name: updated.name,
-            amount: updated.amount,
-            category: updated.category,
-            due_date: updated.dueDate,
-            recurrence: updated.recurrence,
-            note: updated.note,
-          })
+          .update(toPendingRow(updated))
           .eq('id', updated.id)
           .eq('user_id', userId);
 
@@ -923,62 +875,145 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         } else {
           await loadUserData(userId);
         }
-      } else {
-        if (target.seriesId) {
-          if (target.dueDate) {
-            await supabase
-              .from('pending_items')
-              .delete()
-              .eq('user_id', userId)
-              .eq('series_id', target.seriesId)
-              .gte('due_date', target.dueDate);
-          } else {
-            await supabase
-              .from('pending_items')
-              .delete()
-              .eq('user_id', userId)
-              .eq('series_id', target.seriesId);
-          }
-        } else {
-          await supabase
-            .from('pending_items')
-            .delete()
-            .eq('user_id', userId)
-            .eq('id', updated.id);
-        }
+      }
+      return;
+    }
 
-        const seriesId = target.seriesId || 's_' + Date.now();
-        const updatedWithSeries = { ...updated, seriesId };
-        const itemsToInsert: Omit<PendingItem, 'id'>[] = [updatedWithSeries];
+    // Campos que comparten todas las ocurrencias de la serie (todo menos la fecha)
+    const { due_date: _dueDate, ...sharedRow } = toPendingRow(updated);
+    const withSharedFields = (p: PendingItem): PendingItem => ({
+      ...p,
+      type: updated.type,
+      name: updated.name,
+      amount: updated.amount,
+      category: updated.category,
+      recurrence: updated.recurrence,
+      note: updated.note,
+      paymentMethod: updated.paymentMethod,
+    });
 
-        if (updated.recurrence && updated.recurrence !== 'none') {
-          for (let i = 1; i <= 12; i++) {
-            const nextDueDate = calculateNextDueDate(updated.dueDate, updated.recurrence, i);
-            itemsToInsert.push({
-              ...updatedWithSeries,
-              dueDate: nextDueDate,
-            });
-          }
-        }
+    // 2. Toda la serie con el mismo calendario: se actualizan los datos y cada ocurrencia conserva su fecha
+    const scheduleChanged =
+      !target.seriesId || updated.dueDate !== target.dueDate || updated.recurrence !== target.recurrence;
 
-        const dbRows = itemsToInsert.map((it) => ({
-          user_id: userId,
-          type: it.type,
-          name: it.name,
-          amount: it.amount,
-          category: it.category,
-          due_date: it.dueDate,
-          recurrence: it.recurrence,
-          note: it.note,
-          series_id: it.seriesId,
-        }));
+    if (!scheduleChanged) {
+      setPendingItems((prev) =>
+        sortPendingItems(
+          prev.map((p) =>
+            p.id === updated.id ? updated : p.seriesId === target.seriesId ? withSharedFields(p) : p
+          )
+        )
+      );
 
-        const { error } = await supabase.from('pending_items').insert(dbRows);
-        if (error) {
-          console.error('Error re-insertando serie de pendientes en Supabase:', error);
+      if (userId) {
+        const { error: seriesError } = await supabase
+          .from('pending_items')
+          .update(sharedRow)
+          .eq('user_id', userId)
+          .eq('series_id', target.seriesId);
+        const { error } = await supabase
+          .from('pending_items')
+          .update(toPendingRow(updated))
+          .eq('id', updated.id)
+          .eq('user_id', userId);
+
+        if (seriesError || error) {
+          console.error('Error actualizando serie de pendientes en Supabase:', seriesError || error);
         } else {
           await loadUserData(userId);
         }
+      }
+      return;
+    }
+
+    // 3. Toda la serie con un calendario nuevo: se regeneran esta ocurrencia y las siguientes,
+    // y a las anteriores (vencidas) se les aplican los mismos datos.
+    const seriesId = target.seriesId || 's_' + Date.now();
+    const updatedWithSeries = { ...updated, seriesId: willRecur ? seriesId : undefined };
+
+    setPendingItems((prev) => {
+      const isMatchingFuture = (p: PendingItem) => {
+        if (p.id === target.id) return false;
+        const sameSeries =
+          (target.seriesId && p.seriesId && p.seriesId === target.seriesId) ||
+          (p.name === target.name && p.category === target.category && p.type === target.type);
+
+        if (!sameSeries) return false;
+
+        if (target.dueDate && p.dueDate) {
+          return p.dueDate >= target.dueDate;
+        }
+        return true;
+      };
+
+      const remaining = prev
+        .filter((p) => p.id !== target.id && !isMatchingFuture(p))
+        .map((p) =>
+          target.seriesId && p.seriesId === target.seriesId
+            ? { ...withSharedFields(p), seriesId: willRecur ? p.seriesId : undefined }
+            : p
+        );
+
+      const futureItems: PendingItem[] = [];
+      if (willRecur) {
+        const timestamp = Date.now();
+        for (let i = 1; i <= 12; i++) {
+          futureItems.push({
+            ...updatedWithSeries,
+            id: `p_${timestamp}_${i}`,
+            dueDate: calculateNextDueDate(updated.dueDate, updated.recurrence!, i),
+          });
+        }
+      }
+
+      return sortPendingItems([...remaining, updatedWithSeries, ...futureItems]);
+    });
+
+    if (userId) {
+      if (target.seriesId) {
+        let deleteQuery = supabase
+          .from('pending_items')
+          .delete()
+          .eq('user_id', userId)
+          .eq('series_id', target.seriesId);
+        if (target.dueDate) deleteQuery = deleteQuery.gte('due_date', target.dueDate);
+        await deleteQuery;
+      } else {
+        await supabase.from('pending_items').delete().eq('user_id', userId).eq('id', updated.id);
+      }
+
+      const itemsToInsert: Omit<PendingItem, 'id'>[] = [updatedWithSeries];
+      if (willRecur) {
+        for (let i = 1; i <= 12; i++) {
+          itemsToInsert.push({
+            ...updatedWithSeries,
+            dueDate: calculateNextDueDate(updated.dueDate, updated.recurrence!, i),
+          });
+        }
+      }
+
+      const dbRows = itemsToInsert.map((it) => ({
+        user_id: userId,
+        ...toPendingRow(it),
+        series_id: it.seriesId ?? null,
+      }));
+
+      const { error } = await supabase.from('pending_items').insert(dbRows);
+
+      // Ocurrencias anteriores que quedaron en la serie. Si la serie deja de repetirse, se desvinculan.
+      let previousError = null;
+      if (target.seriesId) {
+        ({ error: previousError } = await supabase
+          .from('pending_items')
+          .update(willRecur ? sharedRow : { ...sharedRow, series_id: null })
+          .eq('user_id', userId)
+          .eq('series_id', target.seriesId));
+      }
+
+      if (error || previousError) {
+        console.error('Error re-insertando serie de pendientes en Supabase:', error || previousError);
+      } else {
+        await loadUserData(userId);
       }
     }
   };

@@ -24,7 +24,11 @@ export interface PendingItem {
   recurrence?: string; // 'none' | 'semanal' | 'mensual' | 'bimensual' | 'trimestral' | 'semestral' | 'anual'
   note?: string;
   seriesId?: string;
+  paymentMethod?: string; // 'Billetera' | 'Tarjeta de Crédito' (solo gastos)
 }
+
+// Al editar un pendiente recurrente: solo esa ocurrencia o toda la serie
+export type PendingEditScope = 'single' | 'series';
 
 export interface TransferData {
   amount: number;

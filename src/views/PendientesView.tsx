@@ -2,6 +2,13 @@ import React, { useState } from 'react';
 import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { PendingItem } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
+import { getCreditCardCycle, CREDIT_CARD_CUTOFF_DAY, CREDIT_CARD_PAYMENT_DAY } from '../utils/creditCard';
+
+// Gasto pendiente que se paga con la tarjeta (Inversiones siempre sale de Inversiones)
+const isCreditCardItem = (item: PendingItem) =>
+  item.type === 'expense' &&
+  item.paymentMethod === CREDIT_CARD_METHOD &&
+  item.category.trim() !== 'Inversiones';
 
 export const PendientesView: React.FC = () => {
   const {
@@ -154,7 +161,8 @@ export const PendientesView: React.FC = () => {
     groupTitle: string;
     items: PendingItem[];
     totalIncome: number;
-    totalExpense: number;
+    totalWalletExpense: number;
+    totalCardExpense: number;
   }
 
   const groupMap: Record<string, GroupedPending> = {};
@@ -191,17 +199,40 @@ export const PendientesView: React.FC = () => {
         groupTitle,
         items: [],
         totalIncome: 0,
-        totalExpense: 0,
+        totalWalletExpense: 0,
+        totalCardExpense: 0,
       };
     }
 
     groupMap[groupKey].items.push(item);
     if (item.type === 'income') {
       groupMap[groupKey].totalIncome += item.amount;
+    } else if (isCreditCardItem(item)) {
+      groupMap[groupKey].totalCardExpense += item.amount;
     } else {
-      groupMap[groupKey].totalExpense += item.amount;
+      groupMap[groupKey].totalWalletExpense += item.amount;
     }
   });
+
+  // Gastos con tarjeta agrupados por extracto: lo que vence hasta el corte se paga el día de pago del mes siguiente
+  interface CardStatement {
+    cutoffDate: string;
+    paymentDate: string;
+    total: number;
+    count: number;
+  }
+
+  const statementMap: Record<string, CardStatement> = {};
+  pendingItems.forEach((item) => {
+    if (!item.dueDate || !isCreditCardItem(item)) return;
+    const { cutoffDate, paymentDate } = getCreditCardCycle(item.dueDate);
+    if (!statementMap[paymentDate]) {
+      statementMap[paymentDate] = { cutoffDate, paymentDate, total: 0, count: 0 };
+    }
+    statementMap[paymentDate].total += item.amount;
+    statementMap[paymentDate].count += 1;
+  });
+  const cardStatements = Object.values(statementMap).sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
 
   // Sort items within each group chronologically by payment due date (dueDate)
   Object.values(groupMap).forEach((group) => {
@@ -234,7 +265,7 @@ export const PendientesView: React.FC = () => {
   const handlePayClick = (item: PendingItem) => {
     setPayModalItem(item);
     setPayAmountInput(item.amount ? item.amount.toString() : '');
-    setPayAccount('Billetera');
+    setPayAccount(isCreditCardItem(item) ? CREDIT_CARD_METHOD : 'Billetera');
     setActiveItemId(null);
   };
 
@@ -254,6 +285,39 @@ export const PendientesView: React.FC = () => {
           <p className="font-body-md text-body-md text-outline">Gestión de facturas y deudas</p>
         </div>
       </div>
+
+      {/* Resumen de extractos de la tarjeta */}
+      {cardStatements.length > 0 && (
+        <section className="mb-stack-lg bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xs">
+          <div className="flex items-center gap-2 mb-3">
+            <span className="material-symbols-outlined text-primary">credit_card</span>
+            <div>
+              <h3 className="font-label-caps text-label-caps text-on-surface-variant font-bold uppercase tracking-wider">
+                Pagos de tarjeta
+              </h3>
+              <p className="text-[11px] text-outline">
+                Corte los {CREDIT_CARD_CUTOFF_DAY} · Pago los {CREDIT_CARD_PAYMENT_DAY} del mes siguiente
+              </p>
+            </div>
+          </div>
+          <div className="divide-y divide-outline-variant/30">
+            {cardStatements.map((statement) => (
+              <div key={statement.paymentDate} className="flex items-center justify-between py-2 text-xs">
+                <div>
+                  <p className="font-semibold text-on-surface">Pago {formatDueDay(statement.paymentDate)}</p>
+                  <p className="text-[11px] text-outline">
+                    Corte {formatDueDay(statement.cutoffDate)} · {statement.count}{' '}
+                    {statement.count === 1 ? 'pendiente' : 'pendientes'}
+                  </p>
+                </div>
+                <span className="font-numeric-data font-bold text-error">
+                  {formatCurrency(statement.total)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {pendingItems.length === 0 ? (
         <div className="p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl text-outline">
@@ -281,7 +345,8 @@ export const PendientesView: React.FC = () => {
                 <span className="h-px flex-1 bg-outline-variant/40" />
                 <div className="ml-auto flex flex-col items-end text-[10px] leading-tight font-numeric-data text-on-surface">
                   <span>INGRESO: {formatCurrency(group.totalIncome)}</span>
-                  <span>GASTO: {formatCurrency(group.totalExpense)}</span>
+                  <span>G. BILLETERA: {formatCurrency(group.totalWalletExpense)}</span>
+                  <span>G. TARJETA: {formatCurrency(group.totalCardExpense)}</span>
                 </div>
               </h3>
 
@@ -320,6 +385,14 @@ export const PendientesView: React.FC = () => {
                                   <span className="inline-flex items-center text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">
                                     <span className="material-symbols-outlined text-[12px] mr-0.5">repeat</span>
                                     {getRecurrenceText(item.recurrence)}
+                                  </span>
+                                )}
+                                {isCreditCardItem(item) && (
+                                  <span className="inline-flex items-center text-[10px] bg-tertiary-fixed-dim/40 text-on-surface px-1.5 py-0.5 rounded font-medium">
+                                    <span className="material-symbols-outlined text-[12px] mr-0.5">credit_card</span>
+                                    {item.dueDate
+                                      ? `Pago ${formatDueDay(getCreditCardCycle(item.dueDate).paymentDate)}`
+                                      : 'Tarjeta'}
                                   </span>
                                 )}
                               </p>
