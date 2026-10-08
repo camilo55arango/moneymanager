@@ -1,3 +1,6 @@
+import { isCreditCardExpense, isCreditCardPayment } from '../context/AppContext';
+import { PendingItem, Transaction } from '../types';
+
 // Día del mes en que cierra el extracto de la tarjeta y día en que se paga
 export const CREDIT_CARD_CUTOFF_DAY = 19;
 export const CREDIT_CARD_PAYMENT_DAY = 9;
@@ -70,6 +73,53 @@ export const getInstallmentSchedule = (charge: CardCharge) => {
       balanceBefore,
     };
   });
+};
+
+// Compras con tarjeta ya registradas y pendientes con tarjeta proyectados a su fecha
+export const getCardCharges = (transactions: Transaction[], pendingItems: PendingItem[]): CardCharge[] => [
+  ...transactions.filter(isCreditCardExpense).map((tx) => ({
+    id: tx.id,
+    name: tx.name,
+    date: tx.date,
+    amount: tx.amount,
+    installments: tx.installments ?? 1,
+    interestRate: tx.interestRate ?? 0,
+    source: 'registrado' as const,
+  })),
+  ...pendingItems
+    .filter((p) => isCreditCardExpense(p) && p.dueDate && p.amount > 0)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      date: p.dueDate!,
+      amount: p.amount,
+      installments: p.installments ?? 1,
+      interestRate: p.interestRate ?? 0,
+      source: 'pendiente' as const,
+    })),
+];
+
+// Pago mínimo de la tarjeta por mes (clave YYYY-MM), según el mes del día de pago de cada cuota
+export const getMinimumPaymentsByMonth = (charges: CardCharge[]): Record<string, number> => {
+  const totals: Record<string, number> = {};
+  for (const charge of charges) {
+    for (const entry of getInstallmentSchedule(charge)) {
+      const month = entry.paymentDate.slice(0, 7);
+      totals[month] = (totals[month] || 0) + entry.capital + entry.interest;
+    }
+  }
+  return totals;
+};
+
+// Abonos a la tarjeta que cubren el extracto que se paga en `monthKey` (YYYY-MM): los hechos
+// después del corte de ese extracto (19 del mes anterior) y hasta el corte siguiente (19 del mes).
+export const getStatementPayments = (transactions: Transaction[], monthKey: string): number => {
+  const [year, month] = monthKey.split('-').map(Number);
+  const from = toDateString(new Date(year, month - 2, CREDIT_CARD_CUTOFF_DAY));
+  const to = toDateString(new Date(year, month - 1, CREDIT_CARD_CUTOFF_DAY));
+  return transactions
+    .filter((tx) => isCreditCardPayment(tx) && tx.date > from && tx.date <= to)
+    .reduce((sum, tx) => sum + tx.amount, 0);
 };
 
 // Primera cuota de una compra, para mostrarla al registrarla

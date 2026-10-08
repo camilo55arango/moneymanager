@@ -1,9 +1,10 @@
 import React, { useMemo } from 'react';
-import { useApp, isCreditCardExpense } from '../context/AppContext';
+import { useApp } from '../context/AppContext';
 import { formatCurrency } from '../utils/formatCurrency';
 import {
   buildCardStatements,
-  CardCharge,
+  getCardCharges,
+  getStatementPayments,
   CardStatement,
   CREDIT_CARD_CUTOFF_DAY,
   CREDIT_CARD_PAYMENT_DAY,
@@ -20,36 +21,18 @@ const todayString = () => {
 export const TarjetaView: React.FC = () => {
   const { transactions, pendingItems, creditCardBalance, creditLimit, setIsPayCreditModalOpen } = useApp();
 
-  // Compras con tarjeta ya registradas y pendientes con tarjeta proyectados a su fecha
-  const statements = useMemo(() => {
-    const charges: CardCharge[] = [
-      ...transactions.filter(isCreditCardExpense).map((tx) => ({
-        id: tx.id,
-        name: tx.name,
-        date: tx.date,
-        amount: tx.amount,
-        installments: tx.installments ?? 1,
-        interestRate: tx.interestRate ?? 0,
-        source: 'registrado' as const,
-      })),
-      ...pendingItems
-        .filter((p) => isCreditCardExpense(p) && p.dueDate && p.amount > 0)
-        .map((p) => ({
-          id: p.id,
-          name: p.name,
-          date: p.dueDate!,
-          amount: p.amount,
-          installments: p.installments ?? 1,
-          interestRate: p.interestRate ?? 0,
-          source: 'pendiente' as const,
-        })),
-    ];
-    return buildCardStatements(charges, todayString(), 2);
-  }, [transactions, pendingItems]);
+  const statements = useMemo(
+    () => buildCardStatements(getCardCharges(transactions, pendingItems), todayString(), 2),
+    [transactions, pendingItems]
+  );
 
   const availableCredit = Math.max(creditLimit - creditCardBalance, 0);
 
-  const renderStatement = (statement: CardStatement, title: string) => (
+  const renderStatement = (statement: CardStatement, title: string) => {
+    const paid = getStatementPayments(transactions, statement.paymentDate.slice(0, 7));
+    const isPaid = statement.minimumPayment > 0 && paid >= Math.round(statement.minimumPayment);
+
+    return (
     <section
       key={statement.paymentDate}
       className="mb-stack-lg bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs overflow-hidden"
@@ -65,9 +48,21 @@ export const TarjetaView: React.FC = () => {
           </div>
           <div className="text-right">
             <p className="text-[10px] font-bold uppercase text-outline">Pago mínimo</p>
-            <p className="font-numeric-data text-lg font-bold text-error">
+            <p className={`font-numeric-data text-lg font-bold ${isPaid ? 'text-secondary' : 'text-error'}`}>
               {formatCurrency(Math.round(statement.minimumPayment))}
             </p>
+            {isPaid ? (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-secondary-container/40 text-on-secondary-container">
+                <span className="material-symbols-outlined text-[12px]">check</span>
+                Pagado
+              </span>
+            ) : (
+              paid > 0 && (
+                <p className="text-[11px] text-outline">
+                  Abonado: <span className="font-numeric-data font-semibold text-secondary">{formatCurrency(paid)}</span>
+                </p>
+              )
+            )}
             <p className="text-[11px] text-outline">
               Pago total:{' '}
               <span className="font-numeric-data font-semibold text-on-surface">
@@ -119,7 +114,8 @@ export const TarjetaView: React.FC = () => {
         </div>
       )}
     </section>
-  );
+    );
+  };
 
   return (
     <main className="max-w-2xl mx-auto px-container-padding-mobile md:px-container-padding-desktop py-stack-lg pb-32">

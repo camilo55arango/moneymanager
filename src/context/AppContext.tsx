@@ -16,7 +16,7 @@ interface BalanceDelta {
   credit: number;
 }
 
-const isCreditCardPayment = (tx: Pick<Transaction, 'name' | 'category' | 'type'>) =>
+export const isCreditCardPayment = (tx: Pick<Transaction, 'name' | 'category' | 'type'>) =>
   tx.type === 'expense' && tx.name === CREDIT_PAYMENT_NAME && tx.category === 'Deuda';
 
 // Transferencias y pagos de tarjeta mueven dinero entre dos saldos; se generan desde

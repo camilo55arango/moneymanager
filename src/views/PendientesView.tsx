@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { useApp, CREDIT_CARD_METHOD, isCreditCardExpense as isCreditCardItem } from '../context/AppContext';
 import { PendingItem } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
-import { getCreditCardCycle } from '../utils/creditCard';
+import {
+  getCreditCardCycle,
+  getCardCharges,
+  getMinimumPaymentsByMonth,
+  getStatementPayments,
+} from '../utils/creditCard';
 import { InstallmentFields, parseInstallmentInputs } from '../components/InstallmentFields';
 
 export const PendientesView: React.FC = () => {
   const {
     pendingItems,
+    transactions,
     markPendingAsPaid,
     deletePendingItem,
     setEditingPendingItem,
@@ -160,56 +166,60 @@ export const PendientesView: React.FC = () => {
     totalIncome: number;
     totalWalletExpense: number;
     totalCardExpense: number;
+    cardMinimumPayment: number; // pago mínimo de la tarjeta que vence el día de pago de este mes
   }
 
   const groupMap: Record<string, GroupedPending> = {};
+  const currentMonthKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
+  const getGroup = (groupKey: string, groupTitle: string): GroupedPending =>
+    (groupMap[groupKey] ??= {
+      groupKey,
+      groupTitle,
+      items: [],
+      totalIncome: 0,
+      totalWalletExpense: 0,
+      totalCardExpense: 0,
+      cardMinimumPayment: 0,
+    });
+
+  // Grupo de un mes a partir de su clave YYYY-MM
+  const getMonthGroup = (monthKey: string): GroupedPending => {
+    const [year, month] = monthKey.split('-').map(Number);
+    const title = `${monthNames[month - 1].toUpperCase()} ${year}`;
+    return getGroup(monthKey, monthKey === currentMonthKey ? `${title} (ACTUAL)` : title);
+  };
 
   pendingItems.forEach((item) => {
-    let groupKey = 'SIN_FECHA';
-    let groupTitle = 'SIN FECHA';
-
-    if (item.dueDate) {
-      const itemDate = new Date(item.dueDate + 'T00:00:00');
-      const itemYear = itemDate.getFullYear();
-      const itemMonth = itemDate.getMonth();
-
-      const currentYear = today.getFullYear();
-      const currentMonth = today.getMonth();
-
-      if (itemYear < currentYear || (itemYear === currentYear && itemMonth < currentMonth)) {
-        groupKey = '0000-00_MESES_ANTERIORES';
-        groupTitle = 'MESES ANTERIORES';
-      } else {
-        const mm = String(itemMonth + 1).padStart(2, '0');
-        groupKey = `${itemYear}-${mm}`;
-        if (itemYear === currentYear && itemMonth === currentMonth) {
-          groupTitle = `${monthNames[itemMonth].toUpperCase()} ${itemYear} (ACTUAL)`;
-        } else {
-          groupTitle = `${monthNames[itemMonth].toUpperCase()} ${itemYear}`;
-        }
-      }
-    }
-
-    if (!groupMap[groupKey]) {
-      groupMap[groupKey] = {
-        groupKey,
-        groupTitle,
-        items: [],
-        totalIncome: 0,
-        totalWalletExpense: 0,
-        totalCardExpense: 0,
-      };
-    }
-
-    groupMap[groupKey].items.push(item);
-    if (item.type === 'income') {
-      groupMap[groupKey].totalIncome += item.amount;
-    } else if (isCreditCardItem(item)) {
-      groupMap[groupKey].totalCardExpense += item.amount;
+    let group: GroupedPending;
+    if (!item.dueDate) {
+      group = getGroup('SIN_FECHA', 'SIN FECHA');
+    } else if (item.dueDate.slice(0, 7) < currentMonthKey) {
+      group = getGroup('0000-00_MESES_ANTERIORES', 'MESES ANTERIORES');
     } else {
-      groupMap[groupKey].totalWalletExpense += item.amount;
+      group = getMonthGroup(item.dueDate.slice(0, 7));
+    }
+
+    group.items.push(item);
+    if (item.type === 'income') {
+      group.totalIncome += item.amount;
+    } else if (isCreditCardItem(item)) {
+      group.totalCardExpense += item.amount;
+    } else {
+      group.totalWalletExpense += item.amount;
     }
   });
+
+  // El pago mínimo de la tarjeta sale de la billetera en el mes de su día de pago, descontando
+  // lo que ya se haya abonado a ese extracto. Los meses ya pasados no se cuentan.
+  Object.entries(getMinimumPaymentsByMonth(getCardCharges(transactions, pendingItems))).forEach(
+    ([monthKey, amount]) => {
+      if (monthKey < currentMonthKey) return;
+      const remaining = Math.round(amount - getStatementPayments(transactions, monthKey));
+      if (remaining <= 0) return;
+      getMonthGroup(monthKey).cardMinimumPayment += remaining;
+    }
+  );
 
   // Sort items within each group chronologically by payment due date (dueDate)
   Object.values(groupMap).forEach((group) => {
@@ -272,6 +282,7 @@ export const PendientesView: React.FC = () => {
       ) : (
         groupsList.map((group) => {
           const isCollapsed = !!collapsedGroups[group.groupKey];
+          const groupTotal = group.totalIncome - group.totalWalletExpense - group.cardMinimumPayment;
 
           return (
             <section key={group.groupKey} className="mb-stack-lg">
@@ -293,6 +304,16 @@ export const PendientesView: React.FC = () => {
                   <span>INGRESO: {formatCurrency(group.totalIncome)}</span>
                   <span>G. BILLETERA: {formatCurrency(group.totalWalletExpense)}</span>
                   <span>G. TARJETA: {formatCurrency(group.totalCardExpense)}</span>
+                  {group.cardMinimumPayment > 0 && (
+                    <span>PAGO MÍN. TC: {formatCurrency(group.cardMinimumPayment)}</span>
+                  )}
+                  <span
+                    className={`mt-0.5 pt-0.5 border-t border-outline-variant/60 font-bold text-[11px] ${
+                      groupTotal < 0 ? 'text-error' : 'text-secondary'
+                    }`}
+                  >
+                    TOTAL: {formatCurrency(groupTotal)}
+                  </span>
                 </div>
               </h3>
 
