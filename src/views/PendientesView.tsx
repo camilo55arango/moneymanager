@@ -300,22 +300,62 @@ export const PendientesView: React.FC = () => {
                 <span>{group.groupTitle}</span>
                 <span className="text-[11px] font-normal text-outline">({group.items.length})</span>
                 <span className="h-px flex-1 bg-outline-variant/40" />
-                <div className="ml-auto flex flex-col items-end text-[10px] leading-tight font-numeric-data text-on-surface">
-                  <span>INGRESO: {formatCurrency(group.totalIncome)}</span>
-                  <span>G. BILLETERA: {formatCurrency(group.totalWalletExpense)}</span>
-                  <span>G. TARJETA: {formatCurrency(group.totalCardExpense)}</span>
-                  {group.cardMinimumPayment > 0 && (
-                    <span>PAGO MÍN. TC: {formatCurrency(group.cardMinimumPayment)}</span>
-                  )}
-                  <span
-                    className={`mt-0.5 pt-0.5 border-t border-outline-variant/60 font-bold text-[11px] ${
-                      groupTotal < 0 ? 'text-error' : 'text-secondary'
-                    }`}
-                  >
-                    TOTAL: {formatCurrency(groupTotal)}
-                  </span>
-                </div>
+                <span
+                  className={`ml-auto shrink-0 px-2.5 py-1 rounded-full font-numeric-data text-xs font-bold normal-case tracking-normal ${
+                    groupTotal < 0
+                      ? 'bg-error-container text-on-error-container'
+                      : 'bg-secondary-container text-on-secondary-container'
+                  }`}
+                >
+                  {formatCurrency(groupTotal)}
+                </span>
               </h3>
+
+              {/* Month Summary */}
+              {!isCollapsed && (
+                <div className="mb-3 bg-surface-container-lowest rounded-xl border border-outline-variant/30 shadow-xs p-3">
+                  <div className="grid grid-cols-4 gap-2">
+                    {[
+                      { label: 'Ingresos', value: group.totalIncome, sign: '+', color: 'text-secondary' },
+                      { label: 'Billetera', value: group.totalWalletExpense, sign: '-', color: 'text-error' },
+                      { label: 'Pago mín. TC', value: group.cardMinimumPayment, sign: '-', color: 'text-error' },
+                    ].map((col) => (
+                      <div key={col.label} className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-outline truncate">
+                          {col.label}
+                        </p>
+                        <p
+                          className={`font-numeric-data text-xs sm:text-sm font-semibold truncate ${
+                            col.value === 0 ? 'text-outline' : col.color
+                          }`}
+                        >
+                          {col.value === 0 ? formatCurrency(0) : `${col.sign}${formatCurrency(col.value)}`}
+                        </p>
+                      </div>
+                    ))}
+                    <div className="min-w-0 text-right border-l border-outline-variant/40 pl-2">
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-outline">Total</p>
+                      <p
+                        className={`font-numeric-data text-xs sm:text-sm font-bold truncate ${
+                          groupTotal < 0 ? 'text-error' : 'text-secondary'
+                        }`}
+                      >
+                        {formatCurrency(groupTotal)}
+                      </p>
+                    </div>
+                  </div>
+                  {group.totalCardExpense > 0 && (
+                    <p className="mt-2 pt-2 border-t border-outline-variant/30 text-[11px] text-outline flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">credit_card</span>
+                      Con tarjeta este mes:{' '}
+                      <span className="font-numeric-data font-semibold text-on-surface">
+                        {formatCurrency(group.totalCardExpense)}
+                      </span>
+                      <span>· se paga en los próximos extractos</span>
+                    </p>
+                  )}
+                </div>
+              )}
 
               {/* List of items in group */}
               {!isCollapsed && (
