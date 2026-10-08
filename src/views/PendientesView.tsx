@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
-import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
+import { useApp, CREDIT_CARD_METHOD, isCreditCardExpense as isCreditCardItem } from '../context/AppContext';
 import { PendingItem } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
-import { getCreditCardCycle, CREDIT_CARD_CUTOFF_DAY, CREDIT_CARD_PAYMENT_DAY } from '../utils/creditCard';
-
-// Gasto pendiente que se paga con la tarjeta (Inversiones siempre sale de Inversiones)
-const isCreditCardItem = (item: PendingItem) =>
-  item.type === 'expense' &&
-  item.paymentMethod === CREDIT_CARD_METHOD &&
-  item.category.trim() !== 'Inversiones';
+import { getCreditCardCycle } from '../utils/creditCard';
+import { InstallmentFields, parseInstallmentInputs } from '../components/InstallmentFields';
 
 export const PendientesView: React.FC = () => {
   const {
@@ -23,6 +18,8 @@ export const PendientesView: React.FC = () => {
   const [payModalItem, setPayModalItem] = useState<PendingItem | null>(null);
   const [payAmountInput, setPayAmountInput] = useState<string>('');
   const [payAccount, setPayAccount] = useState<string>('Billetera');
+  const [payInstallments, setPayInstallments] = useState<string>('1');
+  const [payInterestRate, setPayInterestRate] = useState<string>('0');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
     'SIN_FECHA': true,
     '0000-00_MESES_ANTERIORES': true,
@@ -214,26 +211,6 @@ export const PendientesView: React.FC = () => {
     }
   });
 
-  // Gastos con tarjeta agrupados por extracto: lo que vence hasta el corte se paga el día de pago del mes siguiente
-  interface CardStatement {
-    cutoffDate: string;
-    paymentDate: string;
-    total: number;
-    count: number;
-  }
-
-  const statementMap: Record<string, CardStatement> = {};
-  pendingItems.forEach((item) => {
-    if (!item.dueDate || !isCreditCardItem(item)) return;
-    const { cutoffDate, paymentDate } = getCreditCardCycle(item.dueDate);
-    if (!statementMap[paymentDate]) {
-      statementMap[paymentDate] = { cutoffDate, paymentDate, total: 0, count: 0 };
-    }
-    statementMap[paymentDate].total += item.amount;
-    statementMap[paymentDate].count += 1;
-  });
-  const cardStatements = Object.values(statementMap).sort((a, b) => a.paymentDate.localeCompare(b.paymentDate));
-
   // Sort items within each group chronologically by payment due date (dueDate)
   Object.values(groupMap).forEach((group) => {
     group.items.sort((a, b) => {
@@ -266,6 +243,8 @@ export const PendientesView: React.FC = () => {
     setPayModalItem(item);
     setPayAmountInput(item.amount ? item.amount.toString() : '');
     setPayAccount(isCreditCardItem(item) ? CREDIT_CARD_METHOD : 'Billetera');
+    setPayInstallments(String(item.installments ?? 1));
+    setPayInterestRate(String(item.interestRate ?? 0));
     setActiveItemId(null);
   };
 
@@ -285,39 +264,6 @@ export const PendientesView: React.FC = () => {
           <p className="font-body-md text-body-md text-outline">Gestión de facturas y deudas</p>
         </div>
       </div>
-
-      {/* Resumen de extractos de la tarjeta */}
-      {cardStatements.length > 0 && (
-        <section className="mb-stack-lg bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 shadow-xs">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="material-symbols-outlined text-primary">credit_card</span>
-            <div>
-              <h3 className="font-label-caps text-label-caps text-on-surface-variant font-bold uppercase tracking-wider">
-                Pagos de tarjeta
-              </h3>
-              <p className="text-[11px] text-outline">
-                Corte los {CREDIT_CARD_CUTOFF_DAY} · Pago los {CREDIT_CARD_PAYMENT_DAY} del mes siguiente
-              </p>
-            </div>
-          </div>
-          <div className="divide-y divide-outline-variant/30">
-            {cardStatements.map((statement) => (
-              <div key={statement.paymentDate} className="flex items-center justify-between py-2 text-xs">
-                <div>
-                  <p className="font-semibold text-on-surface">Pago {formatDueDay(statement.paymentDate)}</p>
-                  <p className="text-[11px] text-outline">
-                    Corte {formatDueDay(statement.cutoffDate)} · {statement.count}{' '}
-                    {statement.count === 1 ? 'pendiente' : 'pendientes'}
-                  </p>
-                </div>
-                <span className="font-numeric-data font-bold text-error">
-                  {formatCurrency(statement.total)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {pendingItems.length === 0 ? (
         <div className="p-8 text-center bg-surface-container-lowest border border-outline-variant rounded-xl text-outline">
@@ -393,6 +339,7 @@ export const PendientesView: React.FC = () => {
                                     {item.dueDate
                                       ? `Pago ${formatDueDay(getCreditCardCycle(item.dueDate).paymentDate)}`
                                       : 'Tarjeta'}
+                                    {(item.installments ?? 1) > 1 && ` · ${item.installments} cuotas`}
                                   </span>
                                 )}
                               </p>
@@ -573,6 +520,15 @@ export const PendientesView: React.FC = () => {
                     Se sumará a la deuda de la tarjeta, sin afectar la Billetera todavía.
                   </p>
                 )}
+                {payAccount === CREDIT_CARD_METHOD && payModalItem.type === 'expense' && (
+                  <InstallmentFields
+                    amount={parseFloat(payAmountInput) || 0}
+                    installments={payInstallments}
+                    interestRate={payInterestRate}
+                    onInstallmentsChange={setPayInstallments}
+                    onInterestRateChange={setPayInterestRate}
+                  />
+                )}
               </div>
             )}
 
@@ -607,7 +563,8 @@ export const PendientesView: React.FC = () => {
                   markPendingAsPaid(
                     payModalItem.id,
                     isNaN(finalAmount) ? payModalItem.amount : finalAmount,
-                    payAccount
+                    payAccount,
+                    parseInstallmentInputs(payInstallments, payInterestRate)
                   );
                   setPayModalItem(null);
                 }}

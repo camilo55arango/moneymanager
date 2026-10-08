@@ -1,4 +1,4 @@
-export type ViewMode = 'setup' | 'dashboard' | 'pendientes' | 'estadisticas' | 'new-transaction' | 'new-pending' | 'login';
+export type ViewMode = 'setup' | 'dashboard' | 'pendientes' | 'tarjeta' | 'estadisticas' | 'new-transaction' | 'new-pending' | 'login';
 
 export type TransactionType = 'income' | 'expense';
 
@@ -12,6 +12,8 @@ export interface Transaction {
   paymentMethod?: string; // 'cash' | 'credit' | 'debit' | 'transfer'
   note?: string;
   status: 'paid' | 'received' | 'pending';
+  installments?: number; // cuotas, solo compras con tarjeta
+  interestRate?: number; // % de interés mensual, solo compras con tarjeta
 }
 
 export interface PendingItem {
@@ -25,6 +27,8 @@ export interface PendingItem {
   note?: string;
   seriesId?: string;
   paymentMethod?: string; // 'Billetera' | 'Tarjeta de Crédito' (solo gastos)
+  installments?: number; // cuotas, solo con tarjeta
+  interestRate?: number; // % de interés mensual, solo con tarjeta
 }
 
 // Al editar un pendiente recurrente: solo esa ocurrencia o toda la serie

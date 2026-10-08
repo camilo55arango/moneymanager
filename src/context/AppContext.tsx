@@ -24,6 +24,10 @@ const isCreditCardPayment = (tx: Pick<Transaction, 'name' | 'category' | 'type'>
 export const isSystemTransaction = (tx: Transaction) =>
   tx.paymentMethod === TRANSFER_METHOD || isCreditCardPayment(tx);
 
+// Gasto que se paga con la tarjeta (Inversiones siempre sale de Inversiones)
+export const isCreditCardExpense = (item: Pick<Transaction, 'type' | 'category' | 'paymentMethod'>) =>
+  item.type === 'expense' && item.paymentMethod === CREDIT_CARD_METHOD && item.category.trim() !== 'Inversiones';
+
 // Efecto que tiene un movimiento sobre los saldos. Se usa para aplicarlo al crearlo
 // y para revertirlo al editarlo o eliminarlo.
 const getBalanceEffect = (tx: Omit<Transaction, 'id'>): BalanceDelta => {
@@ -78,7 +82,12 @@ interface AppContextType {
   addPendingItem: (item: Omit<PendingItem, 'id'>) => void;
   updatePendingItem: (item: PendingItem, scope?: PendingEditScope) => Promise<void>;
   deletePendingItem: (id: string, deleteAllSeries?: boolean) => void;
-  markPendingAsPaid: (id: string, customAmount?: number, account?: string) => void;
+  markPendingAsPaid: (
+    id: string,
+    customAmount?: number,
+    account?: string,
+    card?: { installments: number; interestRate: number }
+  ) => void;
   transferFunds: (amount: number, direction: 'walletToInv' | 'invToWallet') => Promise<boolean>;
   payCreditCard: (amount: number) => Promise<boolean>;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -188,6 +197,8 @@ const replenishRecurringSeries = async (userId: string) => {
         note: last.note,
         series_id: last.series_id,
         payment_method: last.payment_method,
+        installments: last.installments,
+        interest_rate: last.interest_rate,
       });
       if (nextDueDate >= today) missing--;
     }
@@ -208,6 +219,36 @@ const toPendingRow = (item: Omit<PendingItem, 'id'>) => ({
   recurrence: item.recurrence,
   note: item.note,
   payment_method: item.paymentMethod ?? null,
+  installments: item.installments ?? null,
+  interest_rate: item.interestRate ?? null,
+});
+
+// Columnas de un movimiento en la tabla transactions
+const toTransactionRow = (tx: Omit<Transaction, 'id'>) => ({
+  type: tx.type,
+  name: tx.name,
+  amount: tx.amount,
+  category: tx.category,
+  date: tx.date,
+  payment_method: tx.paymentMethod,
+  note: tx.note,
+  status: tx.status,
+  installments: tx.installments ?? null,
+  interest_rate: tx.interestRate ?? null,
+});
+
+const fromTransactionRow = (t: any): Transaction => ({
+  id: t.id,
+  type: t.type,
+  name: t.name,
+  amount: Number(t.amount),
+  category: t.category,
+  date: t.date,
+  paymentMethod: t.payment_method,
+  note: t.note,
+  status: t.status,
+  installments: t.installments ?? undefined,
+  interestRate: t.interest_rate != null ? Number(t.interest_rate) : undefined,
 });
 
 export const sortPendingItems =(items: PendingItem[]): PendingItem[] => {
@@ -337,19 +378,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .order('date', { ascending: false });
 
       if (txData) {
-        setTransactions(
-          txData.map((t: any) => ({
-            id: t.id,
-            type: t.type,
-            name: t.name,
-            amount: Number(t.amount),
-            category: t.category,
-            date: t.date,
-            paymentMethod: t.payment_method,
-            note: t.note,
-            status: t.status,
-          }))
-        );
+        setTransactions(txData.map(fromTransactionRow));
       } else {
         setTransactions([]);
       }
@@ -383,6 +412,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               note: p.note,
               seriesId: p.series_id,
               paymentMethod: p.payment_method ?? undefined,
+              installments: p.installments ?? undefined,
+              interestRate: p.interest_rate != null ? Number(p.interest_rate) : undefined,
             }))
           )
         );
@@ -719,30 +750,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (userId) {
       const { data, error } = await supabase.from('transactions').insert({
         user_id: userId,
-        type: tx.type,
-        name: tx.name,
-        amount: tx.amount,
-        category: tx.category,
-        date: tx.date,
-        payment_method: tx.paymentMethod,
-        note: tx.note,
-        status: tx.status,
+        ...toTransactionRow(tx),
       }).select();
 
       if (error) {
         console.error('Error insertando transacción en Supabase:', error);
       } else if (data && data[0]) {
-        const savedTx: Transaction = {
-          id: data[0].id,
-          type: data[0].type,
-          name: data[0].name,
-          amount: Number(data[0].amount),
-          category: data[0].category,
-          date: data[0].date,
-          paymentMethod: data[0].payment_method,
-          note: data[0].note,
-          status: data[0].status,
-        };
+        const savedTx = fromTransactionRow(data[0]);
         setTransactions((prev) => sortTransactions([savedTx, ...prev.filter((t) => t.id !== newTx.id)]));
       }
     }
@@ -766,16 +780,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (userId) {
       const { error } = await supabase
         .from('transactions')
-        .update({
-          type: updated.type,
-          name: updated.name,
-          amount: updated.amount,
-          category: updated.category,
-          date: updated.date,
-          payment_method: updated.paymentMethod,
-          note: updated.note,
-          status: updated.status,
-        })
+        .update(toTransactionRow(updated))
         .eq('id', updated.id)
         .eq('user_id', userId);
       if (error) console.error('Error actualizando transacción en Supabase:', error);
@@ -890,6 +895,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       recurrence: updated.recurrence,
       note: updated.note,
       paymentMethod: updated.paymentMethod,
+      installments: updated.installments,
+      interestRate: updated.interestRate,
     });
 
     // 2. Toda la serie con el mismo calendario: se actualizan los datos y cada ocurrencia conserva su fecha
@@ -1037,7 +1044,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
-  const markPendingAsPaid = async (id: string, customAmount?: number, account?: string) => {
+  const markPendingAsPaid = async (
+    id: string,
+    customAmount?: number,
+    account?: string,
+    card?: { installments: number; interestRate: number }
+  ) => {
     const itemToPay = pendingItems.find((p) => p.id === id);
     if (!itemToPay) return;
 
@@ -1056,6 +1068,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       paymentMethod,
       note: itemToPay.note || 'Pendiente completado',
       status: itemToPay.type === 'income' ? 'received' : 'paid',
+      ...(paymentMethod === CREDIT_CARD_METHOD && {
+        installments: card?.installments ?? itemToPay.installments ?? 1,
+        interestRate: card?.interestRate ?? itemToPay.interestRate ?? 0,
+      }),
     });
 
     await deletePendingItem(id);

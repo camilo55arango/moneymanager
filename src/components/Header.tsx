@@ -13,6 +13,8 @@ export const Header: React.FC = () => {
         return 'Resumen';
       case 'pendientes':
         return 'Próximos Pagos';
+      case 'tarjeta':
+        return 'Tarjeta de Crédito';
       case 'estadisticas':
         return 'Estadísticas';
       case 'new-transaction':

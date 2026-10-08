@@ -72,7 +72,7 @@ export const BottomNav: React.FC = () => {
       <nav className="fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-safe bg-surface-container-lowest border-t border-outline-variant shadow-[0_-4px_15px_0_rgba(0,0,0,0.04)] z-40 rounded-t-xl max-w-7xl mx-auto right-0">
         <button
           onClick={() => setCurrentView('dashboard')}
-          className={`flex flex-col items-center justify-center px-4 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
             currentView === 'dashboard'
               ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-variant/50'
@@ -84,7 +84,7 @@ export const BottomNav: React.FC = () => {
 
         <button
           onClick={() => setCurrentView('pendientes')}
-          className={`flex flex-col items-center justify-center px-4 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
             currentView === 'pendientes'
               ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-variant/50'
@@ -95,8 +95,20 @@ export const BottomNav: React.FC = () => {
         </button>
 
         <button
+          onClick={() => setCurrentView('tarjeta')}
+          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+            currentView === 'tarjeta'
+              ? 'bg-secondary-container text-on-secondary-container font-semibold'
+              : 'text-on-surface-variant hover:bg-surface-variant/50'
+          }`}
+        >
+          <span className="material-symbols-outlined">credit_card</span>
+          <span className="font-label-caps text-label-caps mt-0.5">Tarjeta</span>
+        </button>
+
+        <button
           onClick={() => setCurrentView('estadisticas')}
-          className={`flex flex-col items-center justify-center px-4 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
+          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
             currentView === 'estadisticas'
               ? 'bg-secondary-container text-on-secondary-container font-semibold'
               : 'text-on-surface-variant hover:bg-surface-variant/50'

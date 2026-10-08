@@ -6,6 +6,7 @@ import { TransferModal } from './components/TransferModal';
 import { PayCreditCardModal } from './components/PayCreditCardModal';
 import { DashboardView } from './views/DashboardView';
 import { PendientesView } from './views/PendientesView';
+import { TarjetaView } from './views/TarjetaView';
 import { InitialSetupView } from './views/InitialSetupView';
 import { NewTransactionView } from './views/NewTransactionView';
 import { NewPendingView } from './views/NewPendingView';
@@ -21,6 +22,7 @@ const MainContent: React.FC = () => {
       <div className="flex-1">
         {currentView === 'dashboard' && <DashboardView />}
         {currentView === 'pendientes' && <PendientesView />}
+        {currentView === 'tarjeta' && <TarjetaView />}
         {currentView === 'estadisticas' && <EstadisticasView />}
         {currentView === 'setup' && <InitialSetupView />}
         {currentView === 'login' && <LoginView />}

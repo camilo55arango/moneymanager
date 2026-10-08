@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { useApp, isSystemTransaction } from '../context/AppContext';
+import { useApp, isSystemTransaction, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
+import { InstallmentFields, parseInstallmentInputs } from '../components/InstallmentFields';
 
 const ACCOUNT_OPTIONS = ['Billetera', 'Tarjeta de Crédito', 'Inversiones'];
 
@@ -32,6 +33,9 @@ export const NewTransactionView: React.FC = () => {
   );
   const [account, setAccount] = useState<string>(editingTransaction?.paymentMethod || 'Billetera');
   const [note, setNote] = useState<string>(editingTransaction?.note || '');
+  const [installments, setInstallments] = useState<string>(String(editingTransaction?.installments ?? 1));
+  const [interestRate, setInterestRate] = useState<string>(String(editingTransaction?.interestRate ?? 0));
+  const isCardPurchase = !isSystemTx && type === 'expense' && account === CREDIT_CARD_METHOD;
   const [error, setError] = useState<string | null>(null);
 
   const getCategoryIcon = (cat: string) => {
@@ -97,6 +101,9 @@ export const NewTransactionView: React.FC = () => {
       paymentMethod: account,
       note: note.trim(),
       status: (type === 'income' ? 'received' : 'paid') as 'received' | 'paid',
+      ...(isCardPurchase
+        ? parseInstallmentInputs(installments, interestRate)
+        : { installments: undefined, interestRate: undefined }),
     };
 
     // Both paths update the balances and save to Supabase
@@ -279,6 +286,15 @@ export const NewTransactionView: React.FC = () => {
                   <span className="material-symbols-outlined text-sm">info</span>
                   Se sumará a la deuda de tu tarjeta. No descuenta la Billetera hasta que la pagues.
                 </p>
+              )}
+              {isCardPurchase && (
+                <InstallmentFields
+                  amount={parseFormattedNumber(amount)}
+                  installments={installments}
+                  interestRate={interestRate}
+                  onInstallmentsChange={setInstallments}
+                  onInterestRateChange={setInterestRate}
+                />
               )}
             </div>
             )}

@@ -3,6 +3,7 @@ import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { PendingEditScope, PendingItem, TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
 import { CREDIT_CARD_CUTOFF_DAY, CREDIT_CARD_PAYMENT_DAY } from '../utils/creditCard';
+import { InstallmentFields, parseInstallmentInputs } from '../components/InstallmentFields';
 
 export const NewPendingView: React.FC = () => {
   const {
@@ -30,6 +31,8 @@ export const NewPendingView: React.FC = () => {
   const [paymentMethod, setPaymentMethod] = useState<string>(
     editingPendingItem?.paymentMethod === CREDIT_CARD_METHOD ? CREDIT_CARD_METHOD : 'Billetera'
   );
+  const [installments, setInstallments] = useState<string>(String(editingPendingItem?.installments ?? 1));
+  const [interestRate, setInterestRate] = useState<string>(String(editingPendingItem?.interestRate ?? 0));
   const [error, setError] = useState<string | null>(null);
   // Cambios listos para guardar mientras el usuario elige si aplican a una ocurrencia o a toda la serie
   const [pendingUpdate, setPendingUpdate] = useState<PendingItem | null>(null);
@@ -91,6 +94,7 @@ export const NewPendingView: React.FC = () => {
       return;
     }
 
+    const usesCreditCard = canUseCreditCard && paymentMethod === CREDIT_CARD_METHOD;
     const itemData = {
       type,
       amount: parseFormattedNumber(amount),
@@ -100,6 +104,9 @@ export const NewPendingView: React.FC = () => {
       recurrence,
       note: note.trim(),
       paymentMethod: type === 'expense' ? (canUseCreditCard ? paymentMethod : 'Billetera') : undefined,
+      ...(usesCreditCard
+        ? parseInstallmentInputs(installments, interestRate)
+        : { installments: undefined, interestRate: undefined }),
     };
 
     if (isEditing && editingPendingItem) {
@@ -302,10 +309,19 @@ export const NewPendingView: React.FC = () => {
                 ))}
               </div>
               {paymentMethod === CREDIT_CARD_METHOD && (
-                <p className="text-[11px] text-secondary font-semibold flex items-center gap-1 mt-2">
-                  <span className="material-symbols-outlined text-sm">info</span>
-                  Entra al extracto con corte el {CREDIT_CARD_CUTOFF_DAY} y se paga el {CREDIT_CARD_PAYMENT_DAY} del mes siguiente.
-                </p>
+                <>
+                  <p className="text-[11px] text-secondary font-semibold flex items-center gap-1 mt-2">
+                    <span className="material-symbols-outlined text-sm">info</span>
+                    Entra al extracto con corte el {CREDIT_CARD_CUTOFF_DAY} y se paga el {CREDIT_CARD_PAYMENT_DAY} del mes siguiente.
+                  </p>
+                  <InstallmentFields
+                    amount={parseFormattedNumber(amount)}
+                    installments={installments}
+                    interestRate={interestRate}
+                    onInstallmentsChange={setInstallments}
+                    onInterestRateChange={setInterestRate}
+                  />
+                </>
               )}
             </div>
           )}
