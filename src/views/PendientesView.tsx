@@ -394,6 +394,12 @@ export const PendientesView: React.FC = () => {
                                     {getRecurrenceText(item.recurrence)}
                                   </span>
                                 )}
+                                {item.isAutomatic && (
+                                  <span className="inline-flex items-center text-[10px] bg-secondary-container text-on-secondary-container px-1.5 py-0.5 rounded font-medium">
+                                    <span className="material-symbols-outlined text-[12px] mr-0.5">autorenew</span>
+                                    Automático
+                                  </span>
+                                )}
                                 {isCreditCardItem(item) && (
                                   <span className="inline-flex items-center text-[10px] bg-tertiary-fixed-dim/40 text-on-surface px-1.5 py-0.5 rounded font-medium">
                                     <span className="material-symbols-outlined text-[12px] mr-0.5">credit_card</span>

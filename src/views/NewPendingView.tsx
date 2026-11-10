@@ -33,6 +33,7 @@ export const NewPendingView: React.FC = () => {
   );
   const [installments, setInstallments] = useState<string>(String(editingPendingItem?.installments ?? 1));
   const [interestRate, setInterestRate] = useState<string>(String(editingPendingItem?.interestRate ?? 0));
+  const [isAutomatic, setIsAutomatic] = useState<boolean>(!!editingPendingItem?.isAutomatic);
   const [error, setError] = useState<string | null>(null);
   // Cambios listos para guardar mientras el usuario elige si aplican a una ocurrencia o a toda la serie
   const [pendingUpdate, setPendingUpdate] = useState<PendingItem | null>(null);
@@ -103,6 +104,7 @@ export const NewPendingView: React.FC = () => {
       category,
       recurrence,
       note: note.trim(),
+      isAutomatic,
       paymentMethod: type === 'expense' ? (canUseCreditCard ? paymentMethod : 'Billetera') : undefined,
       ...(usesCreditCard
         ? parseInstallmentInputs(installments, interestRate)
@@ -280,6 +282,27 @@ export const NewPendingView: React.FC = () => {
                 <option value="anual">Anual</option>
               </select>
             </div>
+          </div>
+
+          {/* Automatic Debit Toggle */}
+          <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1">
+            <label className="flex items-center justify-between gap-3 cursor-pointer">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary">autorenew</span>
+                <div>
+                  <span className="font-label-caps text-label-caps text-on-surface-variant block uppercase tracking-wider font-semibold">
+                    AUTOMÁTICO
+                  </span>
+                  <span className="text-[11px] text-outline">Se paga solo con débito automático.</span>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={isAutomatic}
+                onChange={(e) => setIsAutomatic(e.target.checked)}
+                className="w-5 h-5 accent-primary cursor-pointer"
+              />
+            </label>
           </div>
 
           {/* Payment Method Selector */}

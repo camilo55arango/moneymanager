@@ -199,6 +199,7 @@ const replenishRecurringSeries = async (userId: string) => {
         payment_method: last.payment_method,
         installments: last.installments,
         interest_rate: last.interest_rate,
+        is_automatic: last.is_automatic,
       });
       if (nextDueDate >= today) missing--;
     }
@@ -221,6 +222,7 @@ const toPendingRow = (item: Omit<PendingItem, 'id'>) => ({
   payment_method: item.paymentMethod ?? null,
   installments: item.installments ?? null,
   interest_rate: item.interestRate ?? null,
+  is_automatic: item.isAutomatic ?? false,
 });
 
 // Columnas de un movimiento en la tabla transactions
@@ -414,6 +416,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               paymentMethod: p.payment_method ?? undefined,
               installments: p.installments ?? undefined,
               interestRate: p.interest_rate != null ? Number(p.interest_rate) : undefined,
+              isAutomatic: !!p.is_automatic,
             }))
           )
         );

@@ -29,6 +29,7 @@ export interface PendingItem {
   paymentMethod?: string; // 'Billetera' | 'Tarjeta de Crédito' (solo gastos)
   installments?: number; // cuotas, solo con tarjeta
   interestRate?: number; // % de interés mensual, solo con tarjeta
+  isAutomatic?: boolean; // débito automático
 }
 
 // Al editar un pendiente recurrente: solo esa ocurrencia o toda la serie
