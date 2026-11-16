@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CircleAlert, CircleCheck, LayoutDashboard, LoaderCircle, Lock, LogIn, LogOut, Mail, Pencil, ShieldCheck, Upload, User, UserPlus, Wallet } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 const PRESET_AVATARS = [
@@ -168,7 +169,7 @@ export const LoginView: React.FC = () => {
       <div className="w-full bg-surface-container-lowest p-6 sm:p-8 rounded-3xl border border-outline-variant/60 shadow-lg text-center flex flex-col items-center">
         {/* App / Lock Icon */}
         <div className="w-16 h-16 rounded-2xl bg-primary-fixed text-primary flex items-center justify-center shadow-xs border border-outline-variant/40 mb-4">
-          <span className="material-symbols-outlined text-3xl">account_balance_wallet</span>
+          <Wallet size={30} strokeWidth={1.75} className="shrink-0" aria-hidden />
         </div>
 
         <h2 className="text-2xl font-bold text-on-surface mb-1">
@@ -187,13 +188,11 @@ export const LoginView: React.FC = () => {
           <div
             className={`w-full p-3 mb-5 text-xs font-semibold rounded-xl text-left flex items-center gap-2 ${
               message.type === 'success'
-                ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/30'
-                : 'bg-rose-500/10 text-rose-600 border border-rose-500/30'
+                ? 'bg-positive/10 text-positive border border-positive/30'
+                : 'bg-negative/10 text-negative border border-negative/30'
             }`}
           >
-            <span className="material-symbols-outlined text-sm">
-              {message.type === 'success' ? 'check_circle' : 'error'}
-            </span>
+            {message.type === 'success' ? <CircleCheck size={14} strokeWidth={1.75} className="shrink-0" aria-hidden /> : <CircleAlert size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />}
             <span>{message.text}</span>
           </div>
         )}
@@ -209,11 +208,11 @@ export const LoginView: React.FC = () => {
                     alt={user.name}
                     className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20 shadow-md"
                   />
-                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-emerald-500 border-2 border-surface rounded-full"></span>
+                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-positive border-2 border-surface rounded-full"></span>
                 </div>
                 <h3 className="font-bold text-lg text-on-surface">{user.name}</h3>
                 <p className="text-xs text-outline mb-3">{user.email}</p>
-                <span className="inline-block text-[11px] bg-emerald-500/10 text-emerald-600 font-bold px-3 py-1 rounded-full border border-emerald-500/20">
+                <span className="inline-block text-[11px] bg-positive/10 text-positive font-bold px-3 py-1 rounded-full border border-positive/20">
                   Sesión Activa
                 </span>
 
@@ -225,7 +224,7 @@ export const LoginView: React.FC = () => {
                   }}
                   className="mt-4 text-xs font-bold text-primary hover:underline flex items-center gap-1 cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-sm">edit</span>
+                  <Pencil size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                   Editar Foto o Nombre
                 </button>
               </div>
@@ -261,7 +260,7 @@ export const LoginView: React.FC = () => {
                     />
                   </div>
                   <label className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold cursor-pointer hover:underline">
-                    <span className="material-symbols-outlined text-sm">upload</span>
+                    <Upload size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                     <span>Subir imagen desde equipo</span>
                     <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
                   </label>
@@ -290,7 +289,7 @@ export const LoginView: React.FC = () => {
                 onClick={() => setCurrentView('dashboard')}
                 className="w-full bg-primary text-on-primary py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-90 active:scale-95 transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">dashboard</span>
+                <LayoutDashboard size={18} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>Ir al Panel de Finanzas</span>
               </button>
 
@@ -299,9 +298,9 @@ export const LoginView: React.FC = () => {
                   logout();
                   setMessage({ text: 'Has cerrado sesión.', type: 'success' });
                 }}
-                className="w-full bg-surface-container border border-outline-variant/60 text-rose-600 py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-rose-500/10 active:scale-95 transition-all cursor-pointer"
+                className="w-full bg-surface-container border border-outline-variant/60 text-negative py-3 px-4 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-negative/10 active:scale-95 transition-all cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">logout</span>
+                <LogOut size={18} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>Cerrar Sesión</span>
               </button>
             </div>
@@ -349,9 +348,7 @@ export const LoginView: React.FC = () => {
                     Correo Electrónico
                   </label>
                   <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                      mail
-                    </span>
+                    <Mail size={18} strokeWidth={1.75} className="shrink-0 absolute left-3 text-outline" aria-hidden />
                     <input
                       type="email"
                       required
@@ -368,9 +365,7 @@ export const LoginView: React.FC = () => {
                     Contraseña
                   </label>
                   <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                      lock
-                    </span>
+                    <Lock size={18} strokeWidth={1.75} className="shrink-0 absolute left-3 text-outline" aria-hidden />
                     <input
                       type="password"
                       required
@@ -389,12 +384,12 @@ export const LoginView: React.FC = () => {
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                      <LoaderCircle size={16} strokeWidth={1.75} className="shrink-0 animate-spin" aria-hidden />
                       <span>Ingresando...</span>
                     </span>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-base">login</span>
+                      <LogIn size={16} strokeWidth={1.75} className="shrink-0" aria-hidden />
                       <span>Iniciar Sesión</span>
                     </>
                   )}
@@ -408,9 +403,7 @@ export const LoginView: React.FC = () => {
                     Nombre Completo
                   </label>
                   <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                      person
-                    </span>
+                    <User size={18} strokeWidth={1.75} className="shrink-0 absolute left-3 text-outline" aria-hidden />
                     <input
                       type="text"
                       required
@@ -427,9 +420,7 @@ export const LoginView: React.FC = () => {
                     Correo Electrónico
                   </label>
                   <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                      mail
-                    </span>
+                    <Mail size={18} strokeWidth={1.75} className="shrink-0 absolute left-3 text-outline" aria-hidden />
                     <input
                       type="email"
                       required
@@ -446,9 +437,7 @@ export const LoginView: React.FC = () => {
                     Contraseña
                   </label>
                   <div className="relative flex items-center bg-surface-container rounded-xl border border-outline-variant/60 focus-within:border-primary transition-all">
-                    <span className="material-symbols-outlined absolute left-3 text-outline text-lg">
-                      lock
-                    </span>
+                    <Lock size={18} strokeWidth={1.75} className="shrink-0 absolute left-3 text-outline" aria-hidden />
                     <input
                       type="password"
                       required
@@ -507,7 +496,7 @@ export const LoginView: React.FC = () => {
 
                   <div className="mt-2 text-right">
                     <label className="inline-flex items-center gap-1 text-[11px] text-primary font-semibold cursor-pointer hover:underline">
-                      <span className="material-symbols-outlined text-sm">upload</span>
+                      <Upload size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                       <span>Subir archivo de imagen</span>
                       <input type="file" accept="image/*" onChange={handleImageFileChange} className="hidden" />
                     </label>
@@ -521,12 +510,12 @@ export const LoginView: React.FC = () => {
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
-                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
+                      <LoaderCircle size={16} strokeWidth={1.75} className="shrink-0 animate-spin" aria-hidden />
                       <span>Creando cuenta...</span>
                     </span>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-base">person_add</span>
+                      <UserPlus size={16} strokeWidth={1.75} className="shrink-0" aria-hidden />
                       <span>Crear Cuenta e Iniciar</span>
                     </>
                   )}
@@ -538,7 +527,7 @@ export const LoginView: React.FC = () => {
 
         {/* Security Footer */}
         <div className="mt-8 pt-4 border-t border-outline-variant/40 w-full flex items-center justify-center gap-2 text-outline text-[11px]">
-          <span className="material-symbols-outlined text-sm text-emerald-500">verified_user</span>
+          <ShieldCheck size={14} strokeWidth={1.75} className="shrink-0 text-positive" aria-hidden />
           <span>Autenticación y almacenamiento seguro en Supabase</span>
         </div>
       </div>

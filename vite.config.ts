@@ -7,6 +7,19 @@ export default defineConfig(() => {
   return {
     base: './',
     plugins: [react(), tailwindcss()],
+    build: {
+      rollupOptions: {
+        output: {
+          // Librerías en paquetes propios: cambian poco y el navegador las conserva en caché
+          // entre versiones de la app
+          manualChunks: {
+            react: ['react', 'react-dom', 'react-dom/client'],
+            supabase: ['@supabase/supabase-js'],
+            motion: ['motion'],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

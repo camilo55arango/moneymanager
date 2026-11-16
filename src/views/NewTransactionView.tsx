@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { Calendar, CircleCheck, Info, Landmark, NotebookPen, Tag, TriangleAlert } from 'lucide-react';
+import { getCategoryMeta } from '../utils/categories';
 import { useApp, isSystemTransaction, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
@@ -13,7 +15,7 @@ export const NewTransactionView: React.FC = () => {
     updateTransaction,
     editingTransaction,
     setEditingTransaction,
-    setCurrentView,
+    goBack,
   } = useApp();
 
   const isEditing = !!editingTransaction;
@@ -38,44 +40,6 @@ export const NewTransactionView: React.FC = () => {
   const isCardPurchase = !isSystemTx && type === 'expense' && account === CREDIT_CARD_METHOD;
   const [error, setError] = useState<string | null>(null);
 
-  const getCategoryIcon = (cat: string) => {
-    switch (cat.toLowerCase()) {
-      case 'arriendo':
-      case 'hogar':
-      case 'vivienda':
-        return 'home';
-      case 'servicios':
-        return 'electric_bolt';
-      case 'suscripciones':
-        return 'subscriptions';
-      case 'transporte':
-      case 'auto':
-        return 'directions_bus';
-      case 'compras':
-        return 'shopping_bag';
-      case 'comida':
-      case 'alimentación':
-        return 'restaurant';
-      case 'mercado':
-        return 'local_grocery_store';
-      case 'educación':
-        return 'school';
-      case 'banco':
-        return 'account_balance';
-      case 'salario':
-      case 'ingresos':
-        return 'payments';
-      case 'i. extra':
-      case 'ingreso extra':
-        return 'monetization_on';
-      case 'deuda':
-        return 'credit_score';
-      case 'inversiones':
-        return 'monitoring';
-      default:
-        return 'grid_view';
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +78,7 @@ export const NewTransactionView: React.FC = () => {
       await addTransaction(txData);
     }
 
-    setCurrentView('dashboard');
+    goBack('dashboard');
   };
 
   return (
@@ -143,7 +107,7 @@ export const NewTransactionView: React.FC = () => {
         <div className="px-container-padding-mobile md:px-container-padding-desktop space-y-stack-lg">
           {isSystemTx && (
             <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary flex items-start gap-2">
-              <span className="material-symbols-outlined text-base shrink-0">info</span>
+              <Info size={16} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <div>
                 <p className="font-semibold">{editingTransaction?.name}</p>
                 <p className="opacity-90 mt-0.5">
@@ -190,7 +154,7 @@ export const NewTransactionView: React.FC = () => {
               NOMBRE
             </label>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">label</span>
+              <Tag size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <input
                 type="text"
                 placeholder={type === 'expense' ? '¿Cómo llamas a este gasto?' : '¿De dónde proviene este ingreso?'}
@@ -209,6 +173,7 @@ export const NewTransactionView: React.FC = () => {
             <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 py-2">
               {categories.map((cat) => {
                 const isSelected = selectedCategory === cat;
+                const { Icon } = getCategoryMeta(cat);
                 return (
                   <button
                     key={cat}
@@ -225,9 +190,12 @@ export const NewTransactionView: React.FC = () => {
                         : 'bg-surface-container-lowest hover:border-primary text-on-surface'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[24px] mb-1 group-hover:scale-110 transition-transform">
-                      {getCategoryIcon(cat)}
-                    </span>
+                    <Icon
+                      size={22}
+                      strokeWidth={1.75}
+                      className="mb-1 group-hover:scale-110 transition-transform"
+                      aria-hidden
+                    />
                     <span className="text-xs font-semibold truncate w-full text-center">{cat}</span>
                   </button>
                 );
@@ -235,7 +203,7 @@ export const NewTransactionView: React.FC = () => {
             </div>
             {selectedCategory === 'Inversiones' && (
               <p className="text-xs text-secondary font-semibold mt-1 flex items-center gap-1">
-                <span className="material-symbols-outlined text-sm">info</span>
+                <Info size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 Este valor impactará EXCLUSIVAMENTE el Saldo de Inversiones.
               </p>
             )}
@@ -251,7 +219,7 @@ export const NewTransactionView: React.FC = () => {
                 FECHA
               </label>
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary">calendar_today</span>
+                <Calendar size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
                 <input
                   type="date"
                   value={date}
@@ -268,7 +236,7 @@ export const NewTransactionView: React.FC = () => {
                 CUENTA
               </label>
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary">account_balance</span>
+                <Landmark size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
                 <select
                   value={account}
                   onChange={(e) => setAccount(e.target.value)}
@@ -283,7 +251,7 @@ export const NewTransactionView: React.FC = () => {
               </div>
               {account === 'Tarjeta de Crédito' && type === 'expense' && (
                 <p className="text-xs text-secondary font-semibold mt-2 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">info</span>
+                  <Info size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                   Se sumará a la deuda de tu tarjeta. No descuenta la Billetera hasta que la pagues.
                 </p>
               )}
@@ -305,7 +273,7 @@ export const NewTransactionView: React.FC = () => {
                 NOTA / DESCRIPCIÓN
               </label>
               <div className="flex items-start gap-3">
-                <span className="material-symbols-outlined text-primary mt-1">edit_note</span>
+                <NotebookPen size={20} strokeWidth={1.75} className="shrink-0 text-primary mt-1" aria-hidden />
                 <textarea
                   rows={3}
                   placeholder={type === 'expense' ? '¿En qué gastaste este dinero?' : 'Detalles adicionales...'}
@@ -319,7 +287,7 @@ export const NewTransactionView: React.FC = () => {
 
           {error && (
             <div className="p-3 bg-error-container text-on-error-container text-xs rounded-lg font-semibold flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">warning</span>
+              <TriangleAlert size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -332,7 +300,7 @@ export const NewTransactionView: React.FC = () => {
               type="submit"
               className="w-full md:max-w-md bg-primary text-on-primary py-4 rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer font-bold"
             >
-              <span className="material-symbols-outlined">check_circle</span>
+              <CircleCheck size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>{isEditing ? 'Guardar Cambios' : `Guardar ${type === 'expense' ? 'Gasto' : 'Ingreso'}`}</span>
             </button>
           </div>

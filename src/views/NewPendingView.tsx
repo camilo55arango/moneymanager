@@ -1,4 +1,19 @@
 import React, { useState } from 'react';
+import {
+  Calendar,
+  CalendarClock,
+  CalendarDays,
+  CreditCard,
+  FileText,
+  Info,
+  Pencil,
+  RefreshCw,
+  Repeat,
+  Save,
+  TriangleAlert,
+  Wallet,
+} from 'lucide-react';
+import { getCategoryMeta } from '../utils/categories';
 import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { PendingEditScope, PendingItem, TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
@@ -12,7 +27,7 @@ export const NewPendingView: React.FC = () => {
     updatePendingItem,
     editingPendingItem,
     setEditingPendingItem,
-    setCurrentView,
+    goBack,
   } = useApp();
 
   const isEditing = !!editingPendingItem;
@@ -46,45 +61,6 @@ export const NewPendingView: React.FC = () => {
   const canUseCreditCard = type === 'expense' && category.trim() !== 'Inversiones';
   // Cambiar la repetición solo tiene sentido para toda la serie
   const recurrenceChanged = !!editingPendingItem && recurrence !== (editingPendingItem.recurrence || 'none');
-
-  const getCategoryIcon = (cat: string) => {
-    switch (cat.toLowerCase()) {
-      case 'arriendo':
-      case 'hogar':
-      case 'vivienda':
-        return 'home';
-      case 'servicios':
-        return 'electric_bolt';
-      case 'suscripciones':
-        return 'subscriptions';
-      case 'transporte':
-      case 'auto':
-        return 'directions_bus';
-      case 'compras':
-        return 'shopping_bag';
-      case 'comida':
-      case 'alimentación':
-        return 'restaurant';
-      case 'mercado':
-        return 'local_grocery_store';
-      case 'educación':
-        return 'school';
-      case 'banco':
-        return 'account_balance';
-      case 'salario':
-      case 'ingresos':
-        return 'payments';
-      case 'i. extra':
-      case 'ingreso extra':
-        return 'monetization_on';
-      case 'deuda':
-        return 'credit_score';
-      case 'inversiones':
-        return 'monitoring';
-      default:
-        return 'more_horiz';
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,14 +99,14 @@ export const NewPendingView: React.FC = () => {
     }
 
     await addPendingItem(itemData);
-    setCurrentView('pendientes');
+    goBack('pendientes');
   };
 
   const saveUpdate = async (updated: PendingItem, scope: PendingEditScope) => {
     setPendingUpdate(null);
     await updatePendingItem(updated, scope);
     setEditingPendingItem(null);
-    setCurrentView('pendientes');
+    goBack('pendientes');
   };
 
   return (
@@ -160,7 +136,7 @@ export const NewPendingView: React.FC = () => {
         <div className="px-container-padding-mobile md:px-container-padding-desktop space-y-stack-lg">
           {isEditingRecurring && (
               <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl text-xs text-primary flex items-start gap-2.5">
-                <span className="material-symbols-outlined text-base shrink-0 mt-0.5">repeat</span>
+                <Repeat size={16} strokeWidth={1.75} className="shrink-0 mt-0.5" aria-hidden />
                 <div>
                   <p className="font-semibold">Pendiente recurrente</p>
                   <p className="text-[11px] opacity-90 mt-0.5">
@@ -204,7 +180,7 @@ export const NewPendingView: React.FC = () => {
               NOMBRE DEL PENDIENTE
             </label>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">edit</span>
+              <Pencil size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <input
                 type="text"
                 placeholder="Ej. Pago de luz, Alquiler, Matrícula..."
@@ -221,7 +197,7 @@ export const NewPendingView: React.FC = () => {
               FECHA DE VENCIMIENTO
             </label>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">calendar_today</span>
+              <Calendar size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <input
                 type="date"
                 value={dueDate}
@@ -240,6 +216,7 @@ export const NewPendingView: React.FC = () => {
             <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3 py-2">
               {categories.map((cat) => {
                 const isSelected = category === cat;
+                const { Icon } = getCategoryMeta(cat);
                 return (
                   <button
                     key={cat}
@@ -251,9 +228,12 @@ export const NewPendingView: React.FC = () => {
                         : 'bg-surface-container-lowest hover:border-primary text-on-surface'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-[24px] mb-1 group-hover:scale-110 transition-transform">
-                      {getCategoryIcon(cat)}
-                    </span>
+                    <Icon
+                      size={22}
+                      strokeWidth={1.75}
+                      className="mb-1 group-hover:scale-110 transition-transform"
+                      aria-hidden
+                    />
                     <span className="text-xs font-semibold truncate w-full text-center">{cat}</span>
                   </button>
                 );
@@ -267,7 +247,7 @@ export const NewPendingView: React.FC = () => {
               REPETICIÓN
             </label>
             <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-primary">repeat</span>
+              <Repeat size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <select
                 value={recurrence}
                 onChange={(e) => setRecurrence(e.target.value)}
@@ -288,7 +268,7 @@ export const NewPendingView: React.FC = () => {
           <div className="bg-white p-5 rounded-xl border border-outline-variant custom-shadow-l1">
             <label className="flex items-center justify-between gap-3 cursor-pointer">
               <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-primary">autorenew</span>
+                <RefreshCw size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
                 <div>
                   <span className="font-label-caps text-label-caps text-on-surface-variant block uppercase tracking-wider font-semibold">
                     AUTOMÁTICO
@@ -313,8 +293,8 @@ export const NewPendingView: React.FC = () => {
               </label>
               <div className="grid grid-cols-2 gap-2">
                 {[
-                  { value: 'Billetera', icon: 'account_balance_wallet', label: 'Billetera' },
-                  { value: CREDIT_CARD_METHOD, icon: 'credit_card', label: 'Tarjeta de Crédito' },
+                  { value: 'Billetera', Icon: Wallet, label: 'Billetera' },
+                  { value: CREDIT_CARD_METHOD, Icon: CreditCard, label: 'Tarjeta de Crédito' },
                 ].map((option) => (
                   <button
                     key={option.value}
@@ -326,7 +306,7 @@ export const NewPendingView: React.FC = () => {
                         : 'bg-surface-container border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
                     }`}
                   >
-                    <span className="material-symbols-outlined text-base">{option.icon}</span>
+                    <option.Icon size={16} strokeWidth={1.75} aria-hidden />
                     <span>{option.label}</span>
                   </button>
                 ))}
@@ -334,7 +314,7 @@ export const NewPendingView: React.FC = () => {
               {paymentMethod === CREDIT_CARD_METHOD && (
                 <>
                   <p className="text-[11px] text-secondary font-semibold flex items-center gap-1 mt-2">
-                    <span className="material-symbols-outlined text-sm">info</span>
+                    <Info size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                     Entra al extracto con corte el {CREDIT_CARD_CUTOFF_DAY} y se paga el {CREDIT_CARD_PAYMENT_DAY} del mes siguiente.
                   </p>
                   <InstallmentFields
@@ -355,7 +335,7 @@ export const NewPendingView: React.FC = () => {
               NOTA / DESCRIPCIÓN
             </label>
             <div className="flex items-start gap-3">
-              <span className="material-symbols-outlined text-primary mt-1">description</span>
+              <FileText size={20} strokeWidth={1.75} className="shrink-0 text-primary mt-1" aria-hidden />
               <textarea
                 rows={3}
                 placeholder="Añade detalles adicionales..."
@@ -368,7 +348,7 @@ export const NewPendingView: React.FC = () => {
 
           {error && (
             <div className="p-3 bg-error-container text-on-error-container text-xs rounded-lg font-semibold flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm">warning</span>
+              <TriangleAlert size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>{error}</span>
             </div>
           )}
@@ -381,7 +361,7 @@ export const NewPendingView: React.FC = () => {
               type="submit"
               className="w-full md:max-w-md bg-primary text-on-primary py-4 rounded-full font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-xl shadow-primary/20 cursor-pointer font-bold"
             >
-              <span className="material-symbols-outlined">save</span>
+              <Save size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>{isEditing ? 'Actualizar Pendiente' : 'Guardar Pendiente'}</span>
             </button>
           </div>
@@ -394,7 +374,7 @@ export const NewPendingView: React.FC = () => {
           <div className="bg-surface-container-lowest border border-outline-variant/40 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                <span className="material-symbols-outlined text-2xl">repeat</span>
+                <Repeat size={24} strokeWidth={1.75} className="shrink-0" aria-hidden />
               </div>
               <div>
                 <h3 className="font-bold text-lg text-on-surface">Editar pendiente recurrente</h3>
@@ -408,7 +388,7 @@ export const NewPendingView: React.FC = () => {
               onClick={() => saveUpdate(pendingUpdate, 'single')}
               className="w-full p-3 rounded-xl border border-outline-variant text-left flex items-start gap-3 transition-colors cursor-pointer hover:bg-surface-container disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
-              <span className="material-symbols-outlined text-primary">event</span>
+              <CalendarDays size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <div>
                 <p className="text-sm font-bold text-on-surface">Solo este</p>
                 <p className="text-[11px] text-outline">
@@ -424,7 +404,7 @@ export const NewPendingView: React.FC = () => {
               onClick={() => saveUpdate(pendingUpdate, 'series')}
               className="w-full p-3 rounded-xl border border-outline-variant text-left flex items-start gap-3 transition-colors cursor-pointer hover:bg-surface-container"
             >
-              <span className="material-symbols-outlined text-primary">event_repeat</span>
+              <CalendarClock size={20} strokeWidth={1.75} className="shrink-0 text-primary" aria-hidden />
               <div>
                 <p className="text-sm font-bold text-on-surface">Todos los que se repiten</p>
                 <p className="text-[11px] text-outline">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowRight, LoaderCircle, Plus, ShieldCheck, TrendingUp, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
 
@@ -177,7 +178,7 @@ export const InitialSetupView: React.FC = () => {
                 onClick={handleAddCategory}
                 className="bg-primary text-on-primary h-12 px-4 rounded-lg font-label-caps text-label-caps flex items-center justify-center gap-1.5 hover:opacity-90 active:scale-95 transition-all shadow-sm cursor-pointer font-bold"
               >
-                <span className="material-symbols-outlined text-[20px]">add</span>
+                <Plus size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>CREAR</span>
               </button>
             </div>
@@ -200,9 +201,10 @@ export const InitialSetupView: React.FC = () => {
                     type="button"
                     onClick={() => removeCategory(cat)}
                     title={`Eliminar categoría ${cat}`}
-                    className="material-symbols-outlined text-[16px] opacity-40 hover:opacity-100 cursor-pointer hover:text-error transition-opacity"
+                    aria-label={`Eliminar categoría ${cat}`}
+                    className="flex opacity-40 hover:opacity-100 cursor-pointer hover:text-error transition-opacity"
                   >
-                    close
+                    <X size={16} strokeWidth={1.75} aria-hidden />
                   </button>
                 )}
               </div>
@@ -214,7 +216,7 @@ export const InitialSetupView: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
           <div className="bg-primary-container p-stack-md rounded-xl text-on-primary-fixed flex flex-col gap-unit shadow-sm border border-primary/20">
             <div className="flex items-center gap-2 text-secondary-fixed-dim">
-              <span className="material-symbols-outlined">shield_with_heart</span>
+              <ShieldCheck size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <h4 className="font-label-caps text-label-caps text-white font-bold">Seguridad Bancaria</h4>
             </div>
             <p className="font-body-md text-body-md text-on-primary-fixed-variant opacity-80 text-xs">
@@ -224,7 +226,7 @@ export const InitialSetupView: React.FC = () => {
 
           <div className="bg-secondary/5 p-stack-md rounded-xl border border-secondary/10 flex flex-col justify-center items-center text-center gap-unit">
             <div className="w-10 h-10 rounded-full bg-secondary-fixed flex items-center justify-center mb-1">
-              <span className="material-symbols-outlined text-on-secondary-fixed">trending_up</span>
+              <TrendingUp size={20} strokeWidth={1.75} className="shrink-0 text-on-secondary-fixed" aria-hidden />
             </div>
             <p className="font-label-caps text-label-caps text-secondary font-bold">EFICIENCIA DE FLUJO</p>
             <p className="font-body-md text-body-md text-on-surface-variant text-xs">
@@ -242,13 +244,13 @@ export const InitialSetupView: React.FC = () => {
           >
             {isSaving ? (
               <span className="flex items-center gap-2">
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                <LoaderCircle size={20} strokeWidth={1.75} className="shrink-0 animate-spin" aria-hidden />
                 <span>Guardando...</span>
               </span>
             ) : (
               <>
                 <span>Guardar y Continuar</span>
-                <span className="material-symbols-outlined">arrow_forward</span>
+                <ArrowRight size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               </>
             )}
           </button>
