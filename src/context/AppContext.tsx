@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Transaction, PendingItem, PendingEditScope, ViewMode, UserProfile } from '../types';
 import { supabase } from '../utils/supabase';
 import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
+import { todayString } from '../utils/dates';
 
 const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_NAMES;
 
@@ -1212,7 +1213,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       name: itemToPay.name,
       amount: paidAmount,
       category: itemToPay.category,
-      date: new Date().toISOString().split('T')[0],
+      date: todayString(),
       paymentMethod,
       note: itemToPay.note || 'Pendiente completado',
       status: itemToPay.type === 'income' ? 'received' : 'paid',
@@ -1245,7 +1246,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const sign = direction === 'walletToInv' ? 1 : -1;
     const balanceSaved = applyBalanceDelta({ wallet: -sign * amount, investment: sign * amount, credit: 0 });
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = todayString();
     const newTx: Transaction = {
       id: 'tx_transfer_' + Date.now(),
       type: direction === 'walletToInv' ? 'expense' : 'income',
@@ -1299,7 +1300,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const balanceSaved = applyBalanceDelta({ wallet: -amount, investment: 0, credit: -amount });
 
-    const todayDate = new Date().toISOString().split('T')[0];
+    const todayDate = todayString();
     const newTx: Transaction = {
       id: 'tx_creditpay_' + Date.now(),
       type: 'expense',

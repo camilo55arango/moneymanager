@@ -4,6 +4,7 @@ import { getCategoryMeta } from '../utils/categories';
 import { useApp, isSystemTransaction, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { TransactionType } from '../types';
 import { formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
+import { todayString } from '../utils/dates';
 import { InstallmentFields, parseInstallmentInputs } from '../components/InstallmentFields';
 
 const ACCOUNT_OPTIONS = ['Billetera', 'Tarjeta de Crédito', 'Inversiones'];
@@ -31,7 +32,7 @@ export const NewTransactionView: React.FC = () => {
     editingTransaction?.category || categories[0] || 'Comida'
   );
   const [date, setDate] = useState<string>(
-    editingTransaction?.date || new Date().toISOString().split('T')[0]
+    editingTransaction?.date || todayString()
   );
   const [account, setAccount] = useState<string>(editingTransaction?.paymentMethod || 'Billetera');
   const [note, setNote] = useState<string>(editingTransaction?.note || '');
