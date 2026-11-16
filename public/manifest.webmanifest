@@ -3,8 +3,8 @@
   "short_name": "Money Manager",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#09090B",
-  "theme_color": "#09090B",
+  "background_color": "#7805F2",
+  "theme_color": "#7805F2",
   "icons": [
     {
       "src": "/icon-192.png",
@@ -15,6 +15,12 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
