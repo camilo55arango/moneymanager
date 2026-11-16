@@ -1,14 +1,9 @@
 import React, { useState } from 'react';
 import { CircleAlert, CircleCheck, LayoutDashboard, LoaderCircle, Lock, LogIn, LogOut, Mail, Pencil, ShieldCheck, Upload, User, UserPlus, Wallet } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { avatarSrc, dicebearAvatar } from '../utils/avatar';
 
-const PRESET_AVATARS = [
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Sophia',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Camilo',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Elena',
-  'https://api.dicebear.com/7.x/avataaars/svg?seed=Mateo',
-];
+const PRESET_AVATARS = ['Alex', 'Sophia', 'Camilo', 'Elena', 'Mateo'].map(dicebearAvatar);
 
 export const LoginView: React.FC = () => {
   const { user, login, register, updateProfile, logout, setCurrentView } = useApp();
@@ -204,7 +199,7 @@ export const LoginView: React.FC = () => {
               <div className="w-full bg-surface-container p-5 rounded-2xl border border-outline-variant/60 text-left flex flex-col items-center text-center">
                 <div className="relative mb-3">
                   <img
-                    src={user.avatarUrl || PRESET_AVATARS[0]}
+                    src={avatarSrc(user.avatarUrl || PRESET_AVATARS[0])}
                     alt={user.name}
                     className="w-20 h-20 rounded-full object-cover ring-4 ring-primary/20 shadow-md"
                   />
@@ -247,7 +242,7 @@ export const LoginView: React.FC = () => {
                   <label className="text-[11px] font-bold text-outline uppercase block mb-1">Foto de Perfil (URL o Imagen)</label>
                   <div className="flex items-center gap-3 mb-2">
                     <img
-                      src={editAvatarUrl || PRESET_AVATARS[0]}
+                      src={avatarSrc(editAvatarUrl || PRESET_AVATARS[0])}
                       alt="Vista previa"
                       className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/30 shrink-0"
                     />
@@ -458,7 +453,7 @@ export const LoginView: React.FC = () => {
                   {/* Selected Avatar Preview */}
                   <div className="flex items-center gap-3 mb-3">
                     <img
-                      src={activeAvatar}
+                      src={avatarSrc(activeAvatar)}
                       alt="Avatar seleccionado"
                       className="w-12 h-12 rounded-full object-cover ring-2 ring-primary/40 shadow-xs"
                     />

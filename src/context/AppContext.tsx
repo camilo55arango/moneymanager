@@ -3,6 +3,7 @@ import { Transaction, PendingItem, PendingEditScope, ViewMode, UserProfile } fro
 import { supabase } from '../utils/supabase';
 import { DEFAULT_CATEGORY_NAMES } from '../utils/categories';
 import { todayString } from '../utils/dates';
+import { dicebearAvatar } from '../utils/avatar';
 
 const DEFAULT_CATEGORIES = DEFAULT_CATEGORY_NAMES;
 
@@ -547,7 +548,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const loadUserProfile = async (userId: string, email: string, metadata?: any) => {
-    const defaultAvatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email || userId)}`;
+    const defaultAvatar = dicebearAvatar(email || userId);
     try {
       const { data: profile } = await supabase
         .from('profiles')
@@ -618,9 +619,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     avatarUrl?: string
   ): Promise<{ success: boolean; error?: string; confirmationSent?: boolean }> => {
     try {
-      const finalAvatar = avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`;
+      const finalAvatar = avatarUrl || dicebearAvatar(email);
       const metadataAvatar = finalAvatar.length > 2000
-        ? `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`
+        ? dicebearAvatar(email)
         : finalAvatar;
 
       const { data, error } = await supabase.auth.signUp({
