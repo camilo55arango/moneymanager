@@ -1,20 +1,21 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Money Manager
 
-# Run and deploy your AI Studio app
+Aplicación de finanzas personales (React + Vite + Tailwind + Supabase): saldos de billetera,
+inversiones y tarjeta de crédito, pendientes recurrentes, presupuestos por categoría y
+proyección del saldo.
 
-This contains everything you need to run your app locally.
+## Ejecutar localmente
 
-View your app in AI Studio: https://ai.studio/apps/2975f6e9-28e7-489b-908b-44cb24de657c
+**Requisitos:** Node.js
 
-## Run Locally
+1. Instalar dependencias: `npm install`
+2. Iniciar la app: `npm run dev` (abre en http://localhost:3000)
 
-**Prerequisites:**  Node.js
+## Base de datos
 
+Las migraciones de Supabase están en `supabase/migrations`. Ejecútalas en orden desde el
+SQL Editor de Supabase (o con `supabase db push`):
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- `..._apply_balance_delta.sql`: ajuste atómico de saldos. Sin ella la app sigue funcionando,
+  pero escribe el saldo completo desde el navegador.
+- `..._budgets.sql`: tabla de presupuestos. Sin ella la sección de presupuestos no aparece.
