@@ -1,3 +1,22 @@
+import {
+  Banknote,
+  Bus,
+  Coins,
+  GraduationCap,
+  HandCoins,
+  House,
+  Landmark,
+  LayoutGrid,
+  LucideIcon,
+  Repeat,
+  ShoppingBag,
+  ShoppingCart,
+  Tag,
+  TrendingUp,
+  UtensilsCrossed,
+  Zap,
+} from 'lucide-react';
+
 export interface CategoryDefinition {
   name: string;
   icon: string;
@@ -47,4 +66,35 @@ export const getCategoryIcon = (categoryName: string): string => {
   if (lower.includes('inversi')) return 'monitoring';
 
   return 'label';
+};
+
+// Equivalente en lucide de cada ícono de Material Symbols usado por las categorías
+const LUCIDE_BY_SYMBOL: Record<string, LucideIcon> = {
+  home: House,
+  electric_bolt: Zap,
+  subscriptions: Repeat,
+  directions_bus: Bus,
+  shopping_bag: ShoppingBag,
+  restaurant: UtensilsCrossed,
+  local_grocery_store: ShoppingCart,
+  school: GraduationCap,
+  account_balance: Landmark,
+  payments: Banknote,
+  monetization_on: Coins,
+  credit_score: HandCoins,
+  monitoring: TrendingUp,
+  grid_view: LayoutGrid,
+};
+
+const FALLBACK_CATEGORY_COLOR = '#8E8E99';
+
+// Ícono (lucide) y color de una categoría. Las categorías personalizadas toman el de la
+// categoría por defecto a la que se parecen (ver getCategoryIcon).
+export const getCategoryMeta = (categoryName: string): { Icon: LucideIcon; color: string } => {
+  const symbol = getCategoryIcon(categoryName);
+  const definition = DEFAULT_CATEGORY_DEFINITIONS.find((c) => c.icon === symbol);
+  return {
+    Icon: LUCIDE_BY_SYMBOL[symbol] ?? Tag,
+    color: definition?.color ?? FALLBACK_CATEGORY_COLOR,
+  };
 };

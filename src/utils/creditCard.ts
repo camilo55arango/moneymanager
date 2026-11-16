@@ -128,6 +128,24 @@ export const getFirstInstallment = (amount: number, installments: number, intere
   return amount / n + Math.round(amount * (Math.max(0, interestRate || 0) / 100));
 };
 
+// Costo total de una compra a cuotas: suma de los intereses de todo el plan de pagos
+export const getInstallmentCost = (amount: number, installments: number, interestRate: number) => {
+  const totalInterest = getInstallmentSchedule({
+    id: '',
+    name: '',
+    date: toDateString(new Date()),
+    amount,
+    installments,
+    interestRate,
+    source: 'registrado',
+  }).reduce((sum, entry) => sum + entry.interest, 0);
+  return {
+    totalInterest,
+    total: amount + totalInterest,
+    interestPct: amount > 0 ? (totalInterest / amount) * 100 : 0,
+  };
+};
+
 // Extractos que se pagan a partir de `today`: el actual (próximo día de pago) y los siguientes
 export const buildCardStatements = (charges: CardCharge[], today: string, count: number): CardStatement[] => {
   const [year, month, day] = today.split('-').map(Number);
