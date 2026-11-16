@@ -141,12 +141,14 @@ export const PendientesView: React.FC = () => {
     group.items.sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
   });
 
-  // Vencidos -> meses en orden -> Sin fecha
+  // Sin fecha -> vencidos -> meses en orden
   const groupsList = Object.values(groupMap).sort((a, b) => {
-    if (a.groupKey === NO_DATE_KEY) return 1;
-    if (b.groupKey === NO_DATE_KEY) return -1;
+    if (a.groupKey === NO_DATE_KEY) return -1;
+    if (b.groupKey === NO_DATE_KEY) return 1;
     return a.groupKey.localeCompare(b.groupKey);
   });
+  // "Sin fecha" no cuenta para decidir qué meses se abren por defecto
+  const datedOffset = groupMap[NO_DATE_KEY] ? 1 : 0;
 
   const overdueCount = pendingItems.filter((p) => p.dueDate && p.dueDate < today).length;
 
@@ -310,7 +312,8 @@ export const PendientesView: React.FC = () => {
         </div>
       ) : (
         groupsList.map((group, index) => {
-          const isCollapsed = collapsedGroups[group.groupKey] ?? isCollapsedByDefault(group.groupKey, index);
+          const isCollapsed =
+            collapsedGroups[group.groupKey] ?? isCollapsedByDefault(group.groupKey, index - datedOffset);
           const groupTotal = group.totalIncome - group.totalWalletExpense - group.cardMinimumPayment;
           const isOverdueGroup = group.groupKey === OVERDUE_KEY;
 
