@@ -188,7 +188,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
 
   const chipClass = (active: boolean) =>
     `rounded-full px-3 py-1.5 text-xs font-medium transition-colors cursor-pointer ${
-      active ? 'bg-fg text-canvas' : 'bg-surface-2 text-fg-muted hover:text-fg'
+      active ? 'bg-accent text-on-accent' : 'bg-surface-2 text-fg-muted hover:text-fg'
     }`;
 
   return (
@@ -237,7 +237,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                       type="button"
                       onClick={() => selectType(t)}
                       className={`rounded-full px-4 py-1.5 text-sm transition-colors cursor-pointer ${
-                        type === t ? 'bg-surface-1 font-medium text-fg shadow-sm' : 'text-fg-muted'
+                        type === t ? 'bg-surface-3 font-medium text-fg shadow-sm' : 'text-fg-muted'
                       }`}
                     >
                       {t === 'expense' ? 'Gasto' : 'Ingreso'}
@@ -273,7 +273,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                       type="button"
                       onClick={() => selectCategory(cat)}
                       className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs transition-colors cursor-pointer ${
-                        active ? 'border-fg bg-fg text-canvas' : 'border-line text-fg hover:bg-surface-2'
+                        active ? 'border-accent bg-accent text-on-accent' : 'border-line text-fg hover:bg-surface-2'
                       }`}
                     >
                       <Icon size={14} strokeWidth={1.75} style={active ? undefined : { color }} />
@@ -351,7 +351,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder={`Descripción (opcional: "${selectedCategory}")`}
-                    className="min-w-0 flex-1 rounded-xl border border-line bg-surface-1 px-3 py-2 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong"
+                    className="min-w-0 flex-1 rounded-xl border border-line bg-canvas px-3 py-2 text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong"
                   />
                   <button type="button" onClick={() => setDate(today)} className={chipClass(date === today)}>
                     Hoy
@@ -365,7 +365,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                   </button>
                   <label
                     className={`relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full cursor-pointer ${
-                      date < addDays(today, -1) || date > today ? 'bg-fg text-canvas' : 'bg-surface-2 text-fg-muted'
+                      date < addDays(today, -1) || date > today ? 'bg-accent text-on-accent' : 'bg-surface-2 text-fg-muted'
                     }`}
                     title="Otra fecha"
                   >
@@ -414,7 +414,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                 type="button"
                 onClick={handleSave}
                 disabled={amount <= 0 || saving}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-fg py-3.5 text-sm font-semibold text-canvas transition-opacity disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-accent py-3.5 text-sm font-semibold text-on-accent transition-opacity disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
               >
                 <Check size={18} strokeWidth={2} />
                 {amount > 0

@@ -16,7 +16,7 @@ const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon }> = (
       onClick={() => setCurrentView(view)}
       aria-current={isActive ? 'page' : undefined}
       className={`flex w-16 flex-col items-center gap-0.5 rounded-full py-1.5 text-[11px] transition-colors cursor-pointer ${
-        isActive ? 'text-fg font-medium' : 'text-fg-subtle hover:text-fg-muted'
+        isActive ? 'text-accent font-medium' : 'text-fg-subtle hover:text-fg-muted'
       }`}
     >
       <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
@@ -123,7 +123,7 @@ export const BottomNav: React.FC = () => {
       </AnimatePresence>
 
       <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),16px)] pointer-events-none">
-        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface-1/80 px-2 py-1.5 shadow-lg backdrop-blur-xl">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface-3/90 px-2 py-1.5 shadow-lg backdrop-blur-xl">
           <NavItem view="dashboard" label="Inicio" Icon={House} />
           <NavItem view="pendientes" label="Pendientes" Icon={CalendarClock} />
 
@@ -140,7 +140,7 @@ export const BottomNav: React.FC = () => {
             }}
             aria-label={currentView === 'pendientes' ? 'Nuevo pendiente' : 'Nuevo gasto o ingreso'}
             title="Toca para agregar · mantén presionado para más opciones"
-            className="mx-1 flex h-12 w-12 items-center justify-center rounded-full bg-fg text-canvas shadow-md active:scale-95 transition-transform cursor-pointer select-none"
+            className="mx-1 flex h-12 w-12 items-center justify-center rounded-full bg-accent text-on-accent shadow-md active:scale-95 transition-transform cursor-pointer select-none"
           >
             <Plus
               size={24}

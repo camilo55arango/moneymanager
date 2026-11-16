@@ -265,7 +265,7 @@ export const PendientesView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handlePayClick(item)}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-fg px-3 py-1.5 text-xs font-medium text-canvas cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-on-accent cursor-pointer"
                 >
                   <Check size={14} strokeWidth={2} />
                   {isIncome ? 'Marcar recibido' : 'Marcar pagado'}
@@ -273,7 +273,7 @@ export const PendientesView: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleEdit(item)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-fg hover:bg-surface-1 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs text-fg hover:bg-surface-2 cursor-pointer"
                 >
                   <Pencil size={14} strokeWidth={1.75} />
                   Editar
@@ -430,7 +430,7 @@ export const PendientesView: React.FC = () => {
                     inputMode="decimal"
                     value={payAmountInput}
                     onChange={(e) => setPayAmountInput(e.target.value)}
-                    className="w-full rounded-xl border border-line bg-surface-1 py-2.5 pl-7 pr-3 font-mono text-lg text-fg outline-none focus:border-line-strong"
+                    className="w-full rounded-xl border border-line bg-canvas py-2.5 pl-7 pr-3 font-mono text-lg text-fg outline-none focus:border-line-strong"
                     placeholder="0"
                   />
                 </div>
@@ -464,7 +464,7 @@ export const PendientesView: React.FC = () => {
                           type="button"
                           onClick={() => setPayAccount(opt.value)}
                           className={`flex-1 rounded-full py-1.5 text-sm transition-colors cursor-pointer ${
-                            payAccount === opt.value ? 'bg-surface-1 font-medium text-fg shadow-sm' : 'text-fg-muted'
+                            payAccount === opt.value ? 'bg-surface-3 font-medium text-fg shadow-sm' : 'text-fg-muted'
                           }`}
                         >
                           {opt.label}
@@ -500,7 +500,7 @@ export const PendientesView: React.FC = () => {
               <button
                 type="button"
                 onClick={confirmPayment}
-                className="flex w-full items-center justify-center gap-2 rounded-full bg-fg py-3 text-sm font-semibold text-canvas transition-opacity hover:opacity-90 cursor-pointer"
+                className="flex w-full items-center justify-center gap-2 rounded-full bg-accent py-3 text-sm font-semibold text-on-accent transition-opacity hover:opacity-90 cursor-pointer"
               >
                 <Check size={16} strokeWidth={2} />
                 Confirmar

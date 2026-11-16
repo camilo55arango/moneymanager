@@ -62,7 +62,7 @@ export const PayCreditCardModal: React.FC = () => {
         onClick={handleClose}
       />
 
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl relative overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-surface-3 w-full max-w-md rounded-2xl shadow-2xl relative overflow-hidden z-10 animate-in fade-in zoom-in-95 duration-200">
         <div className="p-6">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-headline-md text-headline-md text-primary font-bold">

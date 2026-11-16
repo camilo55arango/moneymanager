@@ -55,7 +55,7 @@ const groupByCategory = (items: Transaction[], total: number) => {
 
 const chipClass = (active: boolean) =>
   `shrink-0 rounded-full px-3 py-1.5 text-xs transition-colors cursor-pointer ${
-    active ? 'bg-fg text-canvas font-medium' : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
+    active ? 'bg-accent text-on-accent font-medium' : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
   }`;
 
 export const EstadisticasView: React.FC = () => {
@@ -263,7 +263,7 @@ export const EstadisticasView: React.FC = () => {
                   type="button"
                   onClick={() => setTxTypeFilter(value)}
                   className={`rounded-full px-3 py-1 transition-colors cursor-pointer ${
-                    txTypeFilter === value ? 'bg-surface-1 font-medium text-fg shadow-sm' : 'text-fg-muted'
+                    txTypeFilter === value ? 'bg-surface-3 font-medium text-fg shadow-sm' : 'text-fg-muted'
                   }`}
                 >
                   {label}
@@ -277,7 +277,7 @@ export const EstadisticasView: React.FC = () => {
                 placeholder="Buscar"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-40 rounded-full border border-line bg-surface-1 py-1.5 pl-8 pr-3 text-xs text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong sm:w-52"
+                className="w-40 rounded-full border border-line bg-canvas py-1.5 pl-8 pr-3 text-xs text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong sm:w-52"
               />
             </label>
           </div>

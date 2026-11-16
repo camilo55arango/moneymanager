@@ -128,7 +128,7 @@ export const TarjetaView: React.FC = () => {
             type="button"
             onClick={() => setIsPayCreditModalOpen(true)}
             disabled={creditCardBalance <= 0}
-            className="rounded-full bg-fg px-4 py-2 text-sm font-medium text-canvas transition-opacity hover:opacity-90 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
+            className="rounded-full bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-opacity hover:opacity-90 disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
           >
             Pagar
           </button>

@@ -87,7 +87,7 @@ export const BudgetsCard: React.FC<{ today: string }> = ({ today }) => {
             <button
               type="button"
               onClick={save}
-              className="rounded-full bg-fg px-3 py-1.5 text-xs font-medium text-canvas cursor-pointer"
+              className="rounded-full bg-accent px-3 py-1.5 text-xs font-medium text-on-accent cursor-pointer"
             >
               Guardar
             </button>
@@ -128,7 +128,7 @@ export const BudgetsCard: React.FC<{ today: string }> = ({ today }) => {
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [cat]: formatInputNumber(e.target.value) }))}
                       placeholder={average > 0 ? formatInputNumber(average) : 'Sin límite'}
                       title={average > 0 ? `Promedio de los últimos ${AVERAGE_MONTHS} meses` : undefined}
-                      className="w-full rounded-lg border border-line bg-surface-1 py-1.5 pl-6 pr-2 text-right font-mono text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong"
+                      className="w-full rounded-lg border border-line bg-canvas py-1.5 pl-6 pr-2 text-right font-mono text-sm text-fg placeholder:text-fg-subtle outline-none focus:border-line-strong"
                     />
                   </div>
                 </li>

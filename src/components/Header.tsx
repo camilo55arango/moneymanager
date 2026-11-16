@@ -2,6 +2,14 @@ import React from 'react';
 import { ArrowLeft, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ThemeToggle } from './ThemeToggle';
+import { avatarSrc } from '../utils/avatar';
+
+// Franja de marca: fondo morado con texto e íconos en blanco
+const headerClass = 'sticky top-0 z-40 w-full bg-brand text-on-brand';
+const iconButtonClass =
+  'flex h-9 w-9 items-center justify-center rounded-full text-on-brand/80 hover:bg-white/15 hover:text-on-brand transition-colors cursor-pointer';
+const avatarClass =
+  'h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/30 hover:ring-white/60 transition-shadow cursor-pointer';
 
 export const Header: React.FC = () => {
   const { currentView, setCurrentView, goBack, user, editingTransaction, setEditingTransaction } = useApp();
@@ -40,24 +48,24 @@ export const Header: React.FC = () => {
     const dateLabel = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
 
     return (
-      <header className="sticky top-0 z-40 w-full border-b border-line/60 bg-canvas/80 backdrop-blur-md">
+      <header className={headerClass}>
         <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between px-4 md:px-8">
           <div className="min-w-0">
-            <p className="truncate text-base font-semibold text-fg">
+            <p className="truncate text-base font-semibold">
               {greeting}
               {firstName ? `, ${firstName}` : ''}
             </p>
-            <p className="text-xs capitalize text-fg-subtle">{dateLabel}</p>
+            <p className="text-xs capitalize text-on-brand/70">{dateLabel}</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <ThemeToggle />
+            <ThemeToggle className="text-on-brand/80 hover:bg-white/15 hover:text-on-brand" />
             <button
               type="button"
               onClick={() => setCurrentView('setup')}
               title="Ajustes"
               aria-label="Ajustes"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg transition-colors cursor-pointer"
+              className={iconButtonClass}
             >
               <Settings size={18} strokeWidth={1.75} />
             </button>
@@ -66,11 +74,11 @@ export const Header: React.FC = () => {
               onClick={() => setCurrentView('login')}
               title="Mi cuenta"
               aria-label="Mi cuenta"
-              className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-line hover:ring-line-strong transition-shadow cursor-pointer"
+              className={avatarClass}
             >
               <img
                 className="h-full w-full object-cover"
-                src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=MoneyManagerUser'}
+                src={avatarSrc(user.avatarUrl)}
                 alt={user.name || 'Usuario'}
               />
             </button>
@@ -84,7 +92,7 @@ export const Header: React.FC = () => {
   const showBack = isFormView || (isSetupView && user.isLoggedIn);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-line/60 bg-canvas/80 backdrop-blur-md">
+    <header className={headerClass}>
       <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between gap-3 px-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2">
           {showBack && (
@@ -95,16 +103,16 @@ export const Header: React.FC = () => {
                 setEditingTransaction(null);
                 goBack(currentView === 'new-pending' ? 'pendientes' : 'dashboard');
               }}
-              className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-fg hover:bg-surface-2 transition-colors cursor-pointer"
+              className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full hover:bg-white/15 transition-colors cursor-pointer"
             >
               <ArrowLeft size={20} strokeWidth={1.75} />
             </button>
           )}
-          <h1 className="truncate text-base font-semibold text-fg">{getTitle()}</h1>
+          <h1 className="truncate text-base font-semibold">{getTitle()}</h1>
         </div>
 
         <div className="flex items-center gap-2">
-          <ThemeToggle />
+          <ThemeToggle className="text-on-brand/80 hover:bg-white/15 hover:text-on-brand" />
           {!isSetupView && (
             <>
               <button
@@ -112,7 +120,7 @@ export const Header: React.FC = () => {
                 onClick={() => setCurrentView('setup')}
                 title="Ajustes"
                 aria-label="Ajustes"
-                className="flex h-9 w-9 items-center justify-center rounded-full text-fg-muted hover:bg-surface-2 hover:text-fg transition-colors cursor-pointer"
+                className={iconButtonClass}
               >
                 <Settings size={18} strokeWidth={1.75} />
               </button>
@@ -121,11 +129,11 @@ export const Header: React.FC = () => {
                 onClick={() => setCurrentView('login')}
                 title="Mi cuenta"
                 aria-label="Mi cuenta"
-                className="h-9 w-9 overflow-hidden rounded-full ring-1 ring-line hover:ring-line-strong transition-shadow cursor-pointer"
+                className={avatarClass}
               >
                 <img
                   className="h-full w-full object-cover"
-                  src={user.avatarUrl || 'https://api.dicebear.com/7.x/avataaars/svg?seed=MoneyManagerUser'}
+                  src={avatarSrc(user.avatarUrl)}
                   alt={user.name || 'Usuario'}
                 />
               </button>

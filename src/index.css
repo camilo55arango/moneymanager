@@ -8,22 +8,24 @@
   --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
 
   /* Tokens del sistema "Calm Ledger". Las vistas nuevas usan estos. */
-  --color-canvas: #fafafa;
-  --color-surface-1: #ffffff;
-  --color-surface-2: #f4f4f5;
+  --color-canvas: #ffffff;
+  --color-surface-1: #f2f2f4;
+  --color-surface-2: #e8e8ec;
   --color-surface-3: #ffffff;
-  --color-line: #e8e8ec;
-  --color-line-strong: #d4d4da;
+  --color-line: #e6e6ea;
+  --color-line-strong: #d0d0d7;
   --color-fg: #0b0b0f;
   --color-fg-muted: #5a5a66;
-  --color-fg-subtle: #8e8e99;
-  --color-accent: #5b47f5;
-  --color-accent-soft: #5b47f51f;
+  --color-fg-subtle: #74747f;
+  --color-accent: #7805f2;
+  --color-accent-soft: #7805f21f;
   --color-on-accent: #ffffff;
   --color-positive: #11a05a;
   --color-warning: #c47f00;
   --color-negative: #e5484d;
   --color-info: #2f7fe0;
+  --color-brand: #7805f2;
+  --color-on-brand: #ffffff;
 
   --radius-card: 14px;
   --radius-sheet: 20px;
@@ -31,43 +33,43 @@
 
   /* Tokens heredados (Material 3). Apuntan a la paleta nueva para que las vistas
      que aún no se migran se vean coherentes; se irán eliminando vista por vista. */
-  --color-background: #fafafa;
+  --color-background: #ffffff;
   --color-on-background: #0b0b0f;
-  --color-surface: #fafafa;
-  --color-surface-bright: #fafafa;
+  --color-surface: #ffffff;
+  --color-surface-bright: #ffffff;
   --color-surface-dim: #e4e4e7;
   --color-surface-container-lowest: #ffffff;
   --color-surface-container-low: #f7f7f8;
-  --color-surface-container: #f4f4f5;
-  --color-surface-container-high: #ededf0;
-  --color-surface-container-highest: #e6e6ea;
+  --color-surface-container: #f2f2f4;
+  --color-surface-container-high: #e8e8ec;
+  --color-surface-container-highest: #e1e1e6;
   --color-surface-variant: #e6e6ea;
   --color-surface-tint: #5a5a66;
   --color-on-surface: #0b0b0f;
   --color-on-surface-variant: #5a5a66;
-  --color-outline: #8e8e99;
-  --color-outline-variant: #e8e8ec;
+  --color-outline: #74747f;
+  --color-outline-variant: #e6e6ea;
   --color-inverse-surface: #18181c;
   --color-inverse-on-surface: #ededf0;
 
-  --color-primary: #0b0b0f;
+  --color-primary: #7805f2;
   --color-on-primary: #ffffff;
-  --color-primary-container: #18181c;
-  --color-on-primary-container: #a0a0ab;
-  --color-inverse-primary: #c9c3ff;
-  --color-primary-fixed: #ece9fe;
-  --color-primary-fixed-dim: #c9c3ff;
+  --color-primary-container: #7805f2;
+  --color-on-primary-container: #ead9fd;
+  --color-inverse-primary: #c9a3fb;
+  --color-primary-fixed: #f1e6fe;
+  --color-primary-fixed-dim: #d6b8fc;
   --color-on-primary-fixed: #0b0b0f;
   --color-on-primary-fixed-variant: #5a5a66;
 
-  --color-secondary: #5b47f5;
+  --color-secondary: #7805f2;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #ece9fe;
-  --color-on-secondary-container: #3a2ab8;
-  --color-secondary-fixed: #ece9fe;
-  --color-secondary-fixed-dim: #a99dff;
-  --color-on-secondary-fixed: #1e1466;
-  --color-on-secondary-fixed-variant: #3a2ab8;
+  --color-secondary-container: #f1e6fe;
+  --color-on-secondary-container: #4f03a0;
+  --color-secondary-fixed: #f1e6fe;
+  --color-secondary-fixed-dim: #c9a3fb;
+  --color-on-secondary-fixed: #2a0156;
+  --color-on-secondary-fixed-variant: #4f03a0;
 
   --color-tertiary: #c47f00;
   --color-on-tertiary: #ffffff;
@@ -107,13 +109,15 @@ html.dark {
   --color-fg: #ededf0;
   --color-fg-muted: #a0a0ab;
   --color-fg-subtle: #6b6b76;
-  --color-accent: #7c6cff;
-  --color-accent-soft: #7c6cff1f;
-  --color-on-accent: #09090b;
+  --color-accent: #9d50ff;
+  --color-accent-soft: #9d50ff29;
+  --color-on-accent: #ffffff;
   --color-positive: #3dd68c;
   --color-warning: #f5b544;
   --color-negative: #ff5c5c;
   --color-info: #5aa9ff;
+  --color-brand: #2a0c55;
+  --color-on-brand: #ffffff;
 
   --color-background: #09090b;
   --color-on-background: #ededf0;
@@ -134,16 +138,16 @@ html.dark {
   --color-inverse-surface: #ededf0;
   --color-inverse-on-surface: #18181c;
 
-  --color-primary: #ededf0;
-  --color-on-primary: #09090b;
-  --color-primary-container: #202026;
-  --color-on-primary-container: #a0a0ab;
-  --color-inverse-primary: #5b47f5;
+  --color-primary: #9d50ff;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #9d50ff;
+  --color-on-primary-container: #ead9fd;
+  --color-inverse-primary: #7805f2;
 
-  --color-secondary: #a99dff;
+  --color-secondary: #b98aff;
   --color-on-secondary: #09090b;
-  --color-secondary-container: #2a2550;
-  --color-on-secondary-container: #cfc8ff;
+  --color-secondary-container: #2c1450;
+  --color-on-secondary-container: #dcc6ff;
 
   --color-tertiary: #f5b544;
   --color-on-tertiary: #2a1700;
@@ -156,9 +160,9 @@ html.dark {
   --color-on-error-container: #ffb3b3;
 }
 
-/* Los formularios usan bg-white directamente; en oscuro se pintan como tarjeta */
-html.dark .bg-white {
-  background-color: var(--color-surface-container-lowest);
+/* Los paneles de los formularios usan bg-white: se pintan como caja gris, igual que las tarjetas */
+.bg-white {
+  background-color: var(--color-surface-1);
 }
 
 body {
@@ -169,15 +173,16 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Tarjeta base del sistema: en claro una sombra mínima, en oscuro solo borde y brillo interno */
+/* Tarjeta base del sistema: en claro una caja gris sin borde sobre fondo blanco,
+   en oscuro borde y brillo interno */
 .card {
   background-color: var(--color-surface-1);
-  border: 1px solid var(--color-line);
+  border: 1px solid transparent;
   border-radius: var(--radius-card);
-  box-shadow: 0 1px 2px rgb(0 0 0 / 0.04);
 }
 
 html.dark .card {
+  border-color: var(--color-line);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.04);
 }
 
