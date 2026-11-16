@@ -69,6 +69,7 @@ interface AppContextType {
   editingTransaction: Transaction | null;
   user: UserProfile;
   setCurrentView: (view: ViewMode) => void;
+  goBack: (fallback: ViewMode) => void;
   setIsTransferModalOpen: (open: boolean) => void;
   setIsPayCreditModalOpen: (open: boolean) => void;
   setEditingPendingItem: (item: PendingItem | null) => void;
@@ -94,10 +95,24 @@ interface AppContextType {
   register: (name: string, email: string, password: string, avatarUrl?: string) => Promise<{ success: boolean; error?: string; confirmationSent?: boolean }>;
   updateProfile: (name: string, avatarUrl: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
+  budgets: Record<string, number>; // presupuesto mensual por categoría
+  budgetsAvailable: boolean; // false si la tabla budgets aún no existe en la base
+  setBudget: (category: string, amount: number | null) => Promise<void>;
 }
 
 
 
+
+// Vistas que se pueden abrir directamente desde el hash de la URL (ej. atajos de la PWA)
+const DEEP_LINK_VIEWS: ViewMode[] = [
+  'dashboard',
+  'pendientes',
+  'tarjeta',
+  'estadisticas',
+  'new-transaction',
+  'new-pending',
+  'setup',
+];
 
 // Cantidad de ocurrencias futuras (desde hoy) que se mantienen siempre generadas por serie
 const RECURRENCE_HORIZON = 12;
@@ -273,21 +288,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [pendingItems, setPendingItems] = useState<PendingItem[]>([]);
 
-  // Si había una sesión guardada se arranca directo en el panel; si al verificarla
-  // resulta que ya no es válida, fetchSession devuelve al login.
+  // Saldos más recientes. Las funciones del contexto pueden quedar guardadas en closures
+  // (un "Deshacer", dos operaciones seguidas antes del siguiente render), así que leen de
+  // aquí y no del estado de su render, que podría estar desactualizado.
+  const balancesRef = useRef<BalanceDelta>({ wallet: 0, investment: 0, credit: 0 });
+  const [budgets, setBudgets] = useState<Record<string, number>>({});
+  const [budgetsAvailable, setBudgetsAvailable] = useState(false);
+  const pendingBalanceOps = useRef(0);
+  const balanceRpcAvailable = useRef(true);
+
+  const commitBalances = (next: Partial<BalanceDelta>) => {
+    balancesRef.current = { ...balancesRef.current, ...next };
+    if (next.wallet !== undefined) setWalletBalance(next.wallet);
+    if (next.investment !== undefined) setInvestmentBalance(next.investment);
+    if (next.credit !== undefined) setCreditCardBalance(next.credit);
+  };
+
+  // Si había una sesión guardada se arranca directo en el panel (o en la vista del hash de la
+  // URL, ej. /#pendientes); si al verificarla resulta que ya no es válida, fetchSession devuelve al login.
   const [currentView, setCurrentView] = useState<ViewMode>(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('mm_user_profile') || '{}');
-      return saved.isLoggedIn ? 'dashboard' : 'login';
+      if (!saved.isLoggedIn) return 'login';
+      const fromHash = window.location.hash.slice(1) as ViewMode;
+      return DEEP_LINK_VIEWS.includes(fromHash) ? fromHash : 'dashboard';
     } catch {
       return 'login';
     }
   });
+
+  // Cada cambio de vista queda en el historial del navegador para que "atrás" funcione.
+  // `depth` cuenta las entradas propias de la app, para saber si hay a dónde volver.
+  // El login reemplaza la entrada actual para que "atrás" no regrese a una vista privada.
+  const isPoppingHistory = useRef(false);
+  useEffect(() => {
+    if (isPoppingHistory.current) {
+      isPoppingHistory.current = false;
+      return;
+    }
+    const state = window.history.state;
+    if (state?.view === currentView) return;
+    const url = `${window.location.pathname}${window.location.search}#${currentView}`;
+    if (!state?.view || currentView === 'login') {
+      window.history.replaceState({ view: currentView, depth: 0 }, '', url);
+    } else {
+      window.history.pushState({ view: currentView, depth: (state.depth ?? 0) + 1 }, '', url);
+    }
+  }, [currentView]);
+
+  // Vuelve a la vista anterior; si se entró directo (sin historial propio), va a `fallback`
+  const goBack = (fallback: ViewMode) => {
+    if ((window.history.state?.depth ?? 0) > 0) window.history.back();
+    else setCurrentView(fallback);
+  };
+
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      const view = event.state?.view as ViewMode | undefined;
+      if (!view) return;
+      // Sin sesión no se puede volver a una vista privada
+      if (!isLoggedInRef.current && view !== 'login') {
+        window.history.pushState({ view: 'login', depth: 0 }, '', `${window.location.pathname}#login`);
+        return;
+      }
+      isPoppingHistory.current = true;
+      setCurrentView(view);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
   const [isPayCreditModalOpen, setIsPayCreditModalOpen] = useState(false);
   const [editingPendingItem, setEditingPendingItem] = useState<PendingItem | null>(null);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const replenishPromise = useRef<Promise<void> | null>(null);
+  const isLoggedInRef = useRef(false);
 
   const [user, setUser] = useState<UserProfile>(() => {
     const saved = localStorage.getItem('mm_user_profile');
@@ -307,6 +382,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   useEffect(() => {
     localStorage.setItem('mm_user_profile', JSON.stringify(user));
+    isLoggedInRef.current = user.isLoggedIn;
   }, [user]);
 
   // Sync Supabase Auth session & user data on load & auth state change
@@ -334,10 +410,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setUser({ name: '', email: '', avatarUrl: '', isLoggedIn: false });
         setTransactions([]);
         setPendingItems([]);
-        setWalletBalance(0);
-        setInvestmentBalance(0);
-        setCreditCardBalance(0);
+        commitBalances({ wallet: 0, investment: 0, credit: 0 });
         setCreditLimit(0);
+        setBudgets({});
         setCurrentView('login');
       }
     });
@@ -357,18 +432,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         .maybeSingle();
 
       if (walletData) {
-        setWalletBalance(Number(walletData.wallet_balance) || 0);
-        setInvestmentBalance(Number(walletData.investment_balance) || 0);
-        setCreditCardBalance(Number(walletData.credit_balance) || 0);
+        commitBalances({
+          wallet: Number(walletData.wallet_balance) || 0,
+          investment: Number(walletData.investment_balance) || 0,
+          credit: Number(walletData.credit_balance) || 0,
+        });
         setCreditLimit(Number(walletData.credit_limit) || 0);
       } else {
         await supabase.from('wallets').upsert(
           { user_id: userId, wallet_balance: 0, investment_balance: 0, credit_balance: 0, credit_limit: 0 },
           { onConflict: 'user_id' }
         );
-        setWalletBalance(0);
-        setInvestmentBalance(0);
-        setCreditCardBalance(0);
+        commitBalances({ wallet: 0, investment: 0, credit: 0 });
         setCreditLimit(0);
       }
 
@@ -449,6 +524,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const mergedCategories = Array.from(new Set([...DEFAULT_CATEGORIES, ...userSavedCats]));
 
       setCategories(mergedCategories);
+
+      // 5. Presupuestos (tabla opcional: supabase/migrations/..._budgets.sql)
+      const { data: budgetRows, error: budgetsError } = await supabase
+        .from('budgets')
+        .select('category, amount')
+        .eq('user_id', userId);
+      if (budgetsError) {
+        setBudgetsAvailable(false);
+        // 42P01 / PGRST205: la tabla no existe todavía
+        if (budgetsError.code !== '42P01' && budgetsError.code !== 'PGRST205') {
+          console.error('Error cargando presupuestos:', budgetsError);
+        }
+      } else {
+        setBudgetsAvailable(true);
+        setBudgets(Object.fromEntries((budgetRows ?? []).map((b: any) => [b.category, Number(b.amount)])));
+      }
     } catch (err) {
       console.error('Error al cargar datos de Supabase:', err);
     }
@@ -640,12 +731,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     wallet: number,
     investment: number,
     newCreditLimit: number = creditLimit,
-    newCreditBalance: number = creditCardBalance
+    newCreditBalance: number = balancesRef.current.credit
   ) => {
-    setWalletBalance(wallet);
-    setInvestmentBalance(investment);
+    commitBalances({ wallet, investment, credit: newCreditBalance });
     setCreditLimit(newCreditLimit);
-    setCreditCardBalance(newCreditBalance);
 
     const userId = await getActiveUserId();
     if (userId) {
@@ -662,6 +751,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       );
       if (error) console.error('Error actualizando saldos en Supabase:', error);
     }
+  };
+
+  // amount null o <= 0 elimina el presupuesto de la categoría
+  const setBudget = async (category: string, amount: number | null) => {
+    const remove = amount === null || amount <= 0;
+    setBudgets((prev) => {
+      const next = { ...prev };
+      if (remove) delete next[category];
+      else next[category] = amount;
+      return next;
+    });
+
+    const userId = await getActiveUserId();
+    if (!userId) return;
+    const { error } = remove
+      ? await supabase.from('budgets').delete().eq('user_id', userId).eq('category', category)
+      : await supabase
+          .from('budgets')
+          .upsert(
+            { user_id: userId, category, amount, updated_at: new Date().toISOString() },
+            { onConflict: 'user_id,category' }
+          );
+    if (error) console.error('Error guardando presupuesto:', error);
   };
 
   const addCategory = async (categoryName: string) => {
@@ -713,30 +825,63 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   // 2. Crucial Totals Logic for Transactions
+  // El cambio se aplica de inmediato en pantalla y en la base se suma de forma atómica con la
+  // función apply_balance_delta (supabase/migrations). Su respuesta trae los saldos reales,
+  // que se adoptan cuando no queda otra operación en curso (para no deshacer una que aún no
+  // ha respondido). Si la función todavía no existe en la base, se escribe el total como antes.
   const applyBalanceDelta = async (delta: BalanceDelta) => {
     if (delta.wallet === 0 && delta.investment === 0 && delta.credit === 0) return;
 
-    const newWallet = walletBalance + delta.wallet;
-    const newInv = investmentBalance + delta.investment;
-    const newCredit = creditCardBalance + delta.credit;
-
-    setWalletBalance(newWallet);
-    setInvestmentBalance(newInv);
-    setCreditCardBalance(newCredit);
+    const current = balancesRef.current;
+    commitBalances({
+      wallet: current.wallet + delta.wallet,
+      investment: current.investment + delta.investment,
+      credit: current.credit + delta.credit,
+    });
 
     const userId = await getActiveUserId();
-    if (userId) {
-      await supabase.from('wallets').upsert(
-        {
-          user_id: userId,
-          wallet_balance: newWallet,
-          investment_balance: newInv,
-          credit_balance: newCredit,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
+    if (!userId) return;
+
+    if (balanceRpcAvailable.current) {
+      pendingBalanceOps.current++;
+      const { data, error } = await supabase.rpc('apply_balance_delta', {
+        p_wallet: delta.wallet,
+        p_investment: delta.investment,
+        p_credit: delta.credit,
+      });
+      pendingBalanceOps.current--;
+
+      if (!error) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row && pendingBalanceOps.current === 0) {
+          commitBalances({
+            wallet: Number(row.wallet_balance) || 0,
+            investment: Number(row.investment_balance) || 0,
+            credit: Number(row.credit_balance) || 0,
+          });
+        }
+        return;
+      }
+      // PGRST202: la función no existe (la migración aún no se ha aplicado)
+      if (error.code !== 'PGRST202') {
+        console.error('Error ajustando saldos en Supabase:', error);
+        return;
+      }
+      balanceRpcAvailable.current = false;
     }
+
+    const latest = balancesRef.current;
+    const { error } = await supabase.from('wallets').upsert(
+      {
+        user_id: userId,
+        wallet_balance: latest.wallet,
+        investment_balance: latest.investment,
+        credit_balance: latest.credit,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
+    if (error) console.error('Error actualizando saldos en Supabase:', error);
   };
 
   const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
@@ -1094,21 +1239,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // 4. Transfer money between balances
   const transferFunds = async (amount: number, direction: 'walletToInv' | 'invToWallet'): Promise<boolean> => {
     if (amount <= 0) return false;
-    let newWallet = walletBalance;
-    let newInv = investmentBalance;
+    const { wallet, investment } = balancesRef.current;
+    if (direction === 'walletToInv' ? wallet < amount : investment < amount) return false;
 
-    if (direction === 'walletToInv') {
-      if (walletBalance < amount) return false;
-      newWallet = walletBalance - amount;
-      newInv = investmentBalance + amount;
-    } else {
-      if (investmentBalance < amount) return false;
-      newInv = investmentBalance - amount;
-      newWallet = walletBalance + amount;
-    }
-
-    setWalletBalance(newWallet);
-    setInvestmentBalance(newInv);
+    const sign = direction === 'walletToInv' ? 1 : -1;
+    const balanceSaved = applyBalanceDelta({ wallet: -sign * amount, investment: sign * amount, credit: 0 });
 
     const todayDate = new Date().toISOString().split('T')[0];
     const newTx: Transaction = {
@@ -1124,21 +1259,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setTransactions((prev) => [newTx, ...prev]);
 
+    await balanceSaved;
     const userId = await getActiveUserId();
     if (userId) {
-      // 1. Update wallets in Supabase with onConflict: 'user_id'
-      const { error: walletError } = await supabase.from('wallets').upsert(
-        {
-          user_id: userId,
-          wallet_balance: newWallet,
-          investment_balance: newInv,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
-      if (walletError) console.error('Error actualizando billetera en transferencia:', walletError);
-
-      // 2. Log transfer in transfers table
+      // 1. Log transfer in transfers table
       const { error: transferError } = await supabase.from('transfers').insert({
         user_id: userId,
         amount: amount,
@@ -1147,7 +1271,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       });
       if (transferError) console.error('Error registrando transferencia:', transferError);
 
-      // 3. Log movement in transactions table
+      // 2. Log movement in transactions table
       const { data: txData, error: txError } = await supabase.from('transactions').insert({
         user_id: userId,
         type: newTx.type,
@@ -1168,15 +1292,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // 5. Pay down the credit card debt from the wallet
   const payCreditCard = async (amount: number): Promise<boolean> => {
+    const { wallet, credit } = balancesRef.current;
     if (amount <= 0) return false;
-    if (amount > walletBalance) return false;
-    if (amount > creditCardBalance) return false;
+    if (amount > wallet) return false;
+    if (amount > credit) return false;
 
-    const newWallet = walletBalance - amount;
-    const newCredit = creditCardBalance - amount;
-
-    setWalletBalance(newWallet);
-    setCreditCardBalance(newCredit);
+    const balanceSaved = applyBalanceDelta({ wallet: -amount, investment: 0, credit: -amount });
 
     const todayDate = new Date().toISOString().split('T')[0];
     const newTx: Transaction = {
@@ -1192,20 +1313,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
     setTransactions((prev) => [newTx, ...prev]);
 
+    await balanceSaved;
     const userId = await getActiveUserId();
     if (userId) {
-      const { error: walletError } = await supabase.from('wallets').upsert(
-        {
-          user_id: userId,
-          wallet_balance: newWallet,
-          investment_balance: investmentBalance,
-          credit_balance: newCredit,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'user_id' }
-      );
-      if (walletError) console.error('Error actualizando saldos en pago de tarjeta:', walletError);
-
       const { data: txData, error: txError } = await supabase.from('transactions').insert({
         user_id: userId,
         type: newTx.type,
@@ -1241,6 +1351,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         editingTransaction,
         user,
         setCurrentView,
+        goBack,
         setIsTransferModalOpen,
         setIsPayCreditModalOpen,
         setEditingPendingItem,
@@ -1261,6 +1372,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         register,
         updateProfile,
         logout,
+        budgets,
+        budgetsAvailable,
+        setBudget,
       }}
     >
       {children}
