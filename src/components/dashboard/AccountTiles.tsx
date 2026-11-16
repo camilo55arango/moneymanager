@@ -1,11 +1,36 @@
 import React from 'react';
-import { ArrowLeftRight, CreditCard, TrendingUp, Wallet } from 'lucide-react';
+import { ArrowLeftRight, ChevronRight, CreditCard, LucideIcon, TrendingUp, Wallet } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 import { formatCurrency } from '../../utils/formatCurrency';
 
-const tileClass = 'card flex min-w-[240px] snap-start flex-col justify-between gap-4 p-4 md:min-w-0';
 const actionClass =
-  'inline-flex items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-2 transition-colors cursor-pointer';
+  'inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1.5 text-xs font-medium text-fg hover:bg-surface-2 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed';
+
+interface AccountRowProps {
+  Icon: LucideIcon;
+  label: React.ReactNode;
+  amount: number;
+  children?: React.ReactNode; // detalle bajo el monto
+  action: React.ReactNode;
+}
+
+// En móvil cada cuenta es una fila (datos a la izquierda, acción a la derecha);
+// desde md las tres quedan en columnas dentro de la misma tarjeta
+const AccountRow: React.FC<AccountRowProps> = ({ Icon, label, amount, children, action }) => (
+  <div className="flex items-center justify-between gap-3 p-4 md:flex-col md:items-start md:justify-between md:gap-4 md:p-5">
+    <div className="min-w-0 flex-1 md:w-full">
+      <div className="flex items-center gap-2 text-sm text-fg-muted">
+        <Icon size={16} strokeWidth={1.75} className="shrink-0" />
+        {label}
+      </div>
+      <p className="mt-1 truncate font-mono text-xl font-semibold tracking-tight text-fg md:text-2xl">
+        {formatCurrency(amount)}
+      </p>
+      {children}
+    </div>
+    {action}
+  </div>
+);
 
 export const AccountTiles: React.FC = () => {
   const {
@@ -22,73 +47,71 @@ export const AccountTiles: React.FC = () => {
   const availableCredit = Math.max(creditLimit - creditCardBalance, 0);
 
   return (
-    <section className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 md:mx-0 md:grid md:grid-cols-3 md:overflow-visible md:px-0">
-      <div className={tileClass}>
-        <div className="flex items-center gap-2 text-sm text-fg-muted">
-          <Wallet size={16} strokeWidth={1.75} />
-          Billetera
-        </div>
-        <p className="font-mono text-2xl font-semibold tracking-tight text-fg">{formatCurrency(walletBalance)}</p>
-        <div>
+    <section className="card divide-y divide-line overflow-hidden md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+      <AccountRow
+        Icon={Wallet}
+        label="Billetera"
+        amount={walletBalance}
+        action={
           <button type="button" onClick={() => setIsTransferModalOpen(true)} className={actionClass}>
             <ArrowLeftRight size={14} strokeWidth={1.75} />
             Transferir
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className={tileClass}>
-        <div className="flex items-center gap-2 text-sm text-fg-muted">
-          <TrendingUp size={16} strokeWidth={1.75} />
-          Inversiones
-        </div>
-        <p className="font-mono text-2xl font-semibold tracking-tight text-fg">{formatCurrency(investmentBalance)}</p>
-        <div>
+      <AccountRow
+        Icon={TrendingUp}
+        label="Inversiones"
+        amount={investmentBalance}
+        action={
           <button type="button" onClick={() => setIsTransferModalOpen(true)} className={actionClass}>
             <ArrowLeftRight size={14} strokeWidth={1.75} />
             Mover
           </button>
-        </div>
-      </div>
+        }
+      />
 
-      <div className={tileClass}>
-        <button
-          type="button"
-          onClick={() => setCurrentView('tarjeta')}
-          className="flex items-center gap-2 text-sm text-fg-muted hover:text-fg transition-colors cursor-pointer text-left"
-        >
-          <CreditCard size={16} strokeWidth={1.75} />
-          Tarjeta · deuda
-        </button>
-        <div>
-          <p className="font-mono text-2xl font-semibold tracking-tight text-fg">{formatCurrency(creditCardBalance)}</p>
-          {creditLimit > 0 ? (
-            <>
-              <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-surface-2">
-                <div
-                  className={`h-full rounded-full ${usedPct >= 80 ? 'bg-negative' : usedPct >= 50 ? 'bg-warning' : 'bg-fg-muted'}`}
-                  style={{ width: `${usedPct}%` }}
-                />
-              </div>
-              <p className="mt-1.5 text-xs text-fg-subtle">
-                {Math.round(usedPct)}% del cupo · {formatCurrency(availableCredit)} libre
-              </p>
-            </>
-          ) : (
-            <p className="mt-1.5 text-xs text-fg-subtle">Sin cupo configurado</p>
-          )}
-        </div>
-        <div>
+      <AccountRow
+        Icon={CreditCard}
+        label={
+          <button
+            type="button"
+            onClick={() => setCurrentView('tarjeta')}
+            className="flex items-center gap-0.5 hover:text-fg transition-colors cursor-pointer"
+          >
+            Tarjeta · deuda
+            <ChevronRight size={14} />
+          </button>
+        }
+        amount={creditCardBalance}
+        action={
           <button
             type="button"
             onClick={() => setIsPayCreditModalOpen(true)}
             disabled={creditCardBalance <= 0}
-            className={`${actionClass} disabled:opacity-40 disabled:cursor-not-allowed`}
+            className={actionClass}
           >
-            Pagar tarjeta
+            Pagar
           </button>
-        </div>
-      </div>
+        }
+      >
+        {creditLimit > 0 ? (
+          <>
+            <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-surface-2">
+              <div
+                className={`h-full rounded-full ${usedPct >= 80 ? 'bg-negative' : usedPct >= 50 ? 'bg-warning' : 'bg-fg-muted'}`}
+                style={{ width: `${usedPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs text-fg-subtle">
+              {Math.round(usedPct)}% del cupo · {formatCurrency(availableCredit)} libre
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-xs text-fg-subtle">Sin cupo configurado</p>
+        )}
+      </AccountRow>
     </section>
   );
 };
