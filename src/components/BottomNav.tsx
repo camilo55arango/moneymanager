@@ -1,123 +1,160 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowLeftRight, CalendarClock, ChartColumn, CreditCard, House, LucideIcon, Plus, Receipt } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { ViewMode } from '../types';
+import { QuickAddSheet } from './QuickAddSheet';
+
+const LONG_PRESS_MS = 450;
+
+const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon }> = ({ view, label, Icon }) => {
+  const { currentView, setCurrentView } = useApp();
+  const isActive = currentView === view;
+  return (
+    <button
+      type="button"
+      onClick={() => setCurrentView(view)}
+      aria-current={isActive ? 'page' : undefined}
+      className={`flex w-16 flex-col items-center gap-0.5 rounded-full py-1.5 text-[11px] transition-colors cursor-pointer ${
+        isActive ? 'text-fg font-medium' : 'text-fg-subtle hover:text-fg-muted'
+      }`}
+    >
+      <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
+      <span>{label}</span>
+    </button>
+  );
+};
 
 export const BottomNav: React.FC = () => {
-  const { currentView, setCurrentView, setEditingTransaction, setEditingPendingItem } = useApp();
-  const [showFabMenu, setShowFabMenu] = useState(false);
+  const { currentView, setCurrentView, setEditingPendingItem, setIsTransferModalOpen } = useApp();
+  const [showMenu, setShowMenu] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const pressTimer = useRef<number | null>(null);
+  const longPressed = useRef(false);
 
-  // Don't render bottom nav in transactional setup/login screens if not needed, or render cleanly
-  if (currentView === 'setup' || currentView === 'login') {
+  // Los formularios tienen su propio botón de guardar y su "atrás" en el header
+  if (
+    currentView === 'setup' ||
+    currentView === 'login' ||
+    currentView === 'new-transaction' ||
+    currentView === 'new-pending'
+  ) {
     return null;
   }
 
-  const handleFabClick = () => {
-    setShowFabMenu((prev) => !prev);
+  const newTransaction = () => {
+    setShowMenu(false);
+    setShowQuickAdd(true);
   };
+
+  const newPending = () => {
+    setShowMenu(false);
+    setEditingPendingItem(null);
+    setCurrentView('new-pending');
+  };
+
+  const openTransfer = () => {
+    setShowMenu(false);
+    setIsTransferModalOpen(true);
+  };
+
+  // Toque: crea lo propio de la vista (pendiente en Pendientes, movimiento en el resto).
+  // Mantener presionado (o clic derecho) abre el menú con todas las opciones.
+  const startPress = () => {
+    longPressed.current = false;
+    pressTimer.current = window.setTimeout(() => {
+      longPressed.current = true;
+      navigator.vibrate?.(10);
+      setShowMenu(true);
+    }, LONG_PRESS_MS);
+  };
+
+  const cancelPress = () => {
+    if (pressTimer.current) window.clearTimeout(pressTimer.current);
+    pressTimer.current = null;
+  };
+
+  const handleFabClick = () => {
+    if (longPressed.current) return;
+    if (showMenu) setShowMenu(false);
+    else if (currentView === 'pendientes') newPending();
+    else newTransaction();
+  };
+
+  const menuItems = [
+    { label: 'Gasto o ingreso', Icon: Receipt, onClick: newTransaction },
+    { label: 'Pendiente', Icon: CalendarClock, onClick: newPending },
+    { label: 'Transferencia', Icon: ArrowLeftRight, onClick: openTransfer },
+  ];
 
   return (
     <>
-      {/* FAB Quick Action Speed Dial Backdrop */}
-      {showFabMenu && (
-        <div
-          className="fixed inset-0 bg-black/40 backdrop-blur-xs z-30 animate-in fade-in duration-200"
-          onClick={() => setShowFabMenu(false)}
-        />
-      )}
+      <AnimatePresence>
+        {showMenu && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px]"
+              onClick={() => setShowMenu(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: 12, scale: 0.96 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.96 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+              className="fixed bottom-28 left-1/2 z-50 w-60 -translate-x-1/2 rounded-[20px] border border-line bg-surface-3 p-1.5 shadow-xl"
+            >
+              {menuItems.map(({ label, Icon, onClick }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={onClick}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-fg hover:bg-surface-2 transition-colors cursor-pointer"
+                >
+                  <Icon size={18} strokeWidth={1.75} className="text-fg-muted" />
+                  {label}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
-      {/* FAB Quick Options Popup */}
-      {showFabMenu && (
-        <div className="fixed bottom-36 right-6 z-40 flex flex-col gap-3 items-end animate-in slide-in-from-bottom-5 duration-200">
+      <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),16px)] pointer-events-none">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface-1/80 px-2 py-1.5 shadow-lg backdrop-blur-xl">
+          <NavItem view="dashboard" label="Inicio" Icon={House} />
+          <NavItem view="pendientes" label="Pendientes" Icon={CalendarClock} />
+
           <button
-            onClick={() => {
-              setShowFabMenu(false);
-              setEditingTransaction(null);
-              setCurrentView('new-transaction');
+            type="button"
+            onClick={handleFabClick}
+            onPointerDown={startPress}
+            onPointerUp={cancelPress}
+            onPointerLeave={cancelPress}
+            onContextMenu={(e) => {
+              e.preventDefault();
+              cancelPress();
+              setShowMenu(true);
             }}
-            className="flex items-center gap-3 bg-white text-primary px-4 py-3 rounded-full shadow-xl border border-outline-variant hover:bg-surface-container transition-all active:scale-95 cursor-pointer font-semibold text-sm"
+            aria-label={currentView === 'pendientes' ? 'Nuevo pendiente' : 'Nuevo gasto o ingreso'}
+            title="Toca para agregar · mantén presionado para más opciones"
+            className="mx-1 flex h-12 w-12 items-center justify-center rounded-full bg-fg text-canvas shadow-md active:scale-95 transition-transform cursor-pointer select-none"
           >
-            <span>Nuevo Registro (Gasto/Ingreso)</span>
-            <div className="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">add_card</span>
-            </div>
+            <Plus
+              size={24}
+              strokeWidth={2}
+              className={`transition-transform duration-200 ${showMenu ? 'rotate-45' : ''}`}
+            />
           </button>
 
-          <button
-            onClick={() => {
-              setShowFabMenu(false);
-              setEditingPendingItem(null);
-              setCurrentView('new-pending');
-            }}
-            className="flex items-center gap-3 bg-primary-container text-white px-4 py-3 rounded-full shadow-xl border border-primary/20 hover:bg-opacity-90 transition-all active:scale-95 cursor-pointer font-semibold text-sm"
-          >
-            <span>Nuevo Pendiente</span>
-            <div className="w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">event_repeat</span>
-            </div>
-          </button>
+          <NavItem view="tarjeta" label="Tarjeta" Icon={CreditCard} />
+          <NavItem view="estadisticas" label="Análisis" Icon={ChartColumn} />
         </div>
-      )}
-
-      {/* FAB */}
-      <button
-        onClick={handleFabClick}
-        title="Agregar nuevo"
-        className={`fixed bottom-24 right-6 w-14 h-14 bg-primary text-on-primary rounded-full shadow-[0_8px_25px_0_rgba(0,0,0,0.2)] flex items-center justify-center hover:scale-105 active:scale-95 transition-transform z-40 cursor-pointer ${
-          showFabMenu ? 'rotate-45 bg-surface-container-highest text-primary' : ''
-        }`}
-      >
-        <span className="material-symbols-outlined text-[32px]">add</span>
-      </button>
-
-      {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 w-full h-20 flex justify-around items-center px-4 pb-safe bg-surface-container-lowest border-t border-outline-variant shadow-[0_-4px_15px_0_rgba(0,0,0,0.04)] z-40 rounded-t-xl max-w-7xl mx-auto right-0">
-        <button
-          onClick={() => setCurrentView('dashboard')}
-          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-            currentView === 'dashboard'
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
-              : 'text-on-surface-variant hover:bg-surface-variant/50'
-          }`}
-        >
-          <span className="material-symbols-outlined">dashboard</span>
-          <span className="font-label-caps text-label-caps mt-0.5">Gastos</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentView('pendientes')}
-          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-            currentView === 'pendientes'
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
-              : 'text-on-surface-variant hover:bg-surface-variant/50'
-          }`}
-        >
-          <span className="material-symbols-outlined">pending_actions</span>
-          <span className="font-label-caps text-label-caps mt-0.5">Pendientes</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentView('tarjeta')}
-          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-            currentView === 'tarjeta'
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
-              : 'text-on-surface-variant hover:bg-surface-variant/50'
-          }`}
-        >
-          <span className="material-symbols-outlined">credit_card</span>
-          <span className="font-label-caps text-label-caps mt-0.5">Tarjeta</span>
-        </button>
-
-        <button
-          onClick={() => setCurrentView('estadisticas')}
-          className={`flex flex-col items-center justify-center px-3 sm:px-6 py-1.5 rounded-full transition-all duration-200 cursor-pointer ${
-            currentView === 'estadisticas'
-              ? 'bg-secondary-container text-on-secondary-container font-semibold'
-              : 'text-on-surface-variant hover:bg-surface-variant/50'
-          }`}
-        >
-          <span className="material-symbols-outlined">bar_chart</span>
-          <span className="font-label-caps text-label-caps mt-0.5">Estadísticas</span>
-        </button>
       </nav>
+
+      <QuickAddSheet open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
     </>
   );
 };

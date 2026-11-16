@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { CircleCheck, TriangleAlert, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
 
@@ -71,7 +72,7 @@ export const PayCreditCardModal: React.FC = () => {
               onClick={handleClose}
               className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined">close</span>
+              <X size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
             </button>
           </div>
 
@@ -113,14 +114,14 @@ export const PayCreditCardModal: React.FC = () => {
 
             {errorMsg && (
               <div className="p-3 bg-error-container text-on-error-container text-xs rounded-lg font-semibold flex items-center gap-2 animate-in fade-in">
-                <span className="material-symbols-outlined text-sm">warning</span>
+                <TriangleAlert size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {successMsg && (
               <div className="p-3 bg-secondary-container text-on-secondary-container text-xs rounded-lg font-semibold flex items-center gap-2 animate-in fade-in">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <CircleCheck size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>{successMsg}</span>
               </div>
             )}
@@ -129,7 +130,7 @@ export const PayCreditCardModal: React.FC = () => {
               type="submit"
               className="w-full bg-primary text-on-primary py-4 rounded-xl font-headline-md font-semibold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined">check_circle</span>
+              <CircleCheck size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>Confirmar Pago</span>
             </button>
           </form>

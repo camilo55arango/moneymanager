@@ -1,6 +1,9 @@
 import React from 'react';
 import { formatCurrency } from '../utils/formatCurrency';
-import { getFirstInstallment } from '../utils/creditCard';
+import { getFirstInstallment, getInstallmentCost } from '../utils/creditCard';
+
+// A partir de este % de interés sobre el valor de la compra el costo se resalta
+export const HIGH_INTEREST_PCT = 5;
 
 interface InstallmentFieldsProps {
   amount: number;
@@ -21,6 +24,7 @@ export const InstallmentFields: React.FC<InstallmentFieldsProps> = ({
   const n = Math.max(1, parseInt(installments, 10) || 1);
   const rate = parseFloat(interestRate.replace(',', '.')) || 0;
   const firstInstallment = getFirstInstallment(amount, n, rate);
+  const cost = getInstallmentCost(amount, n, rate);
 
   return (
     <div className="mt-3 pt-3 border-t border-outline-variant/40 space-y-2">
@@ -57,6 +61,16 @@ export const InstallmentFields: React.FC<InstallmentFieldsProps> = ({
           Primera cuota (pago mínimo):{' '}
           <span className="font-numeric-data font-bold text-on-surface">{formatCurrency(firstInstallment)}</span>
           {n > 1 && ` · ${n} cuotas de ${formatCurrency(amount / n)} a capital + intereses`}
+        </p>
+      )}
+      {amount > 0 && cost.totalInterest > 0 && (
+        <p
+          className={`text-xs font-medium ${
+            cost.interestPct >= HIGH_INTEREST_PCT ? 'text-warning' : 'text-on-surface-variant'
+          }`}
+        >
+          Total a pagar {formatCurrency(Math.round(cost.total))} (+{formatCurrency(Math.round(cost.totalInterest))} de
+          interés, +{cost.interestPct.toFixed(1)}%)
         </p>
       )}
     </div>

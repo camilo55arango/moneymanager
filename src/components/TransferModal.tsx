@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ArrowLeftRight, CircleCheck, TrendingUp, TriangleAlert, Wallet, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatCurrency, formatInputNumber, parseFormattedNumber } from '../utils/formatCurrency';
 
@@ -78,7 +79,7 @@ export const TransferModal: React.FC = () => {
               onClick={() => setIsTransferModalOpen(false)}
               className="p-2 hover:bg-surface-container rounded-full text-on-surface-variant transition-colors cursor-pointer"
             >
-              <span className="material-symbols-outlined">close</span>
+              <X size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
             </button>
           </div>
 
@@ -117,9 +118,7 @@ export const TransferModal: React.FC = () => {
                         : 'bg-surface-container-highest text-primary border border-outline-variant'
                     }`}
                   >
-                    <span className="material-symbols-outlined">
-                      {direction === 'walletToInv' ? 'account_balance_wallet' : 'monitoring'}
-                    </span>
+                    {direction === 'walletToInv' ? <Wallet size={20} strokeWidth={1.75} aria-hidden /> : <TrendingUp size={20} strokeWidth={1.75} aria-hidden />}
                   </div>
                   <span className="font-label-caps text-label-caps text-primary font-semibold">
                     {fromAccount}
@@ -135,7 +134,7 @@ export const TransferModal: React.FC = () => {
                     title="Cambiar dirección de transferencia"
                     className="w-10 h-10 rounded-full border border-primary flex items-center justify-center text-primary hover:bg-primary hover:text-on-primary transition-all active:scale-90 cursor-pointer shadow-sm"
                   >
-                    <span className="material-symbols-outlined">swap_horiz</span>
+                    <ArrowLeftRight size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
                   </button>
                 </div>
 
@@ -148,9 +147,7 @@ export const TransferModal: React.FC = () => {
                         : 'bg-surface-container-highest text-primary border border-outline-variant'
                     }`}
                   >
-                    <span className="material-symbols-outlined">
-                      {direction === 'invToWallet' ? 'account_balance_wallet' : 'monitoring'}
-                    </span>
+                    {direction === 'invToWallet' ? <Wallet size={20} strokeWidth={1.75} aria-hidden /> : <TrendingUp size={20} strokeWidth={1.75} aria-hidden />}
                   </div>
                   <span className="font-label-caps text-label-caps text-primary font-semibold">
                     {toAccount}
@@ -163,14 +160,14 @@ export const TransferModal: React.FC = () => {
             {/* Alerts */}
             {errorMsg && (
               <div className="p-3 bg-error-container text-on-error-container text-xs rounded-lg font-semibold flex items-center gap-2 animate-in fade-in">
-                <span className="material-symbols-outlined text-sm">warning</span>
+                <TriangleAlert size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             {successMsg && (
               <div className="p-3 bg-secondary-container text-on-secondary-container text-xs rounded-lg font-semibold flex items-center gap-2 animate-in fade-in">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
+                <CircleCheck size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />
                 <span>{successMsg}</span>
               </div>
             )}
@@ -180,7 +177,7 @@ export const TransferModal: React.FC = () => {
               type="submit"
               className="w-full bg-primary text-on-primary py-4 rounded-xl font-headline-md font-semibold hover:opacity-90 active:scale-95 transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
             >
-              <span className="material-symbols-outlined">check_circle</span>
+              <CircleCheck size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
               <span>Confirmar Transferencia</span>
             </button>
           </form>
