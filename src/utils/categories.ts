@@ -20,24 +20,23 @@ import {
 export interface CategoryDefinition {
   name: string;
   icon: string;
-  color?: string;
 }
 
 export const DEFAULT_CATEGORY_DEFINITIONS: CategoryDefinition[] = [
-  { name: 'Arriendo', icon: 'home', color: '#4F46E5' },
-  { name: 'Servicios', icon: 'electric_bolt', color: '#0EA5E9' },
-  { name: 'Suscripciones', icon: 'subscriptions', color: '#8B5CF6' },
-  { name: 'Transporte', icon: 'directions_bus', color: '#10B981' },
-  { name: 'Compras', icon: 'shopping_bag', color: '#F59E0B' },
-  { name: 'Comida', icon: 'restaurant', color: '#EF4444' },
-  { name: 'Mercado', icon: 'local_grocery_store', color: '#10B981' },
-  { name: 'Educación', icon: 'school', color: '#6366F1' },
-  { name: 'Banco', icon: 'account_balance', color: '#3B82F6' },
-  { name: 'Salario', icon: 'payments', color: '#10B981' },
-  { name: 'I. Extra', icon: 'monetization_on', color: '#F59E0B' },
-  { name: 'Deuda', icon: 'credit_score', color: '#EC4899' },
-  { name: 'Inversiones', icon: 'monitoring', color: '#6366F1' },
-  { name: 'Otros', icon: 'grid_view', color: '#6B7280' },
+  { name: 'Arriendo', icon: 'home' },
+  { name: 'Servicios', icon: 'electric_bolt' },
+  { name: 'Suscripciones', icon: 'subscriptions' },
+  { name: 'Transporte', icon: 'directions_bus' },
+  { name: 'Compras', icon: 'shopping_bag' },
+  { name: 'Comida', icon: 'restaurant' },
+  { name: 'Mercado', icon: 'local_grocery_store' },
+  { name: 'Educación', icon: 'school' },
+  { name: 'Banco', icon: 'account_balance' },
+  { name: 'Salario', icon: 'payments' },
+  { name: 'I. Extra', icon: 'monetization_on' },
+  { name: 'Deuda', icon: 'credit_score' },
+  { name: 'Inversiones', icon: 'monitoring' },
+  { name: 'Otros', icon: 'grid_view' },
 ];
 
 export const DEFAULT_CATEGORY_NAMES = DEFAULT_CATEGORY_DEFINITIONS.map((c) => c.name);
@@ -86,15 +85,24 @@ const LUCIDE_BY_SYMBOL: Record<string, LucideIcon> = {
   grid_view: LayoutGrid,
 };
 
-const FALLBACK_CATEGORY_COLOR = '#8E8E99';
+export interface CategoryMeta {
+  Icon: LucideIcon;
+  color: string; // color del ícono
+  tint: string; // fondo suave detrás del ícono
+}
 
-// Ícono (lucide) y color de una categoría. Las categorías personalizadas toman el de la
+// Todas las categorías usan el morado de la paleta (variables CSS, así siguen el modo oscuro);
+// se distinguen por su ícono
+const CATEGORY_COLOR = 'var(--color-accent)';
+const CATEGORY_TINT = 'var(--color-accent-soft)';
+
+// Los movimientos del sistema (transferencias) van en gris para no competir con las categorías
+export const NEUTRAL_META_COLORS = { color: 'var(--color-fg-subtle)', tint: 'var(--color-surface-2)' };
+
+// Ícono (lucide) y colores de una categoría. Las categorías personalizadas toman el ícono de la
 // categoría por defecto a la que se parecen (ver getCategoryIcon).
-export const getCategoryMeta = (categoryName: string): { Icon: LucideIcon; color: string } => {
-  const symbol = getCategoryIcon(categoryName);
-  const definition = DEFAULT_CATEGORY_DEFINITIONS.find((c) => c.icon === symbol);
-  return {
-    Icon: LUCIDE_BY_SYMBOL[symbol] ?? Tag,
-    color: definition?.color ?? FALLBACK_CATEGORY_COLOR,
-  };
-};
+export const getCategoryMeta = (categoryName: string): CategoryMeta => ({
+  Icon: LUCIDE_BY_SYMBOL[getCategoryIcon(categoryName)] ?? Tag,
+  color: CATEGORY_COLOR,
+  tint: CATEGORY_TINT,
+});

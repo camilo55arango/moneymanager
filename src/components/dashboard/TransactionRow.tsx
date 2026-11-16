@@ -4,7 +4,7 @@ import { ArrowLeftRight, Trash2 } from 'lucide-react';
 import { CREDIT_CARD_METHOD, TRANSFER_METHOD } from '../../context/AppContext';
 import { Transaction } from '../../types';
 import { formatCurrency } from '../../utils/formatCurrency';
-import { getCategoryMeta } from '../../utils/categories';
+import { getCategoryMeta, NEUTRAL_META_COLORS } from '../../utils/categories';
 
 const SWIPE_DELETE_THRESHOLD = -96;
 
@@ -27,8 +27,8 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
   const controls = useAnimationControls();
   const isTransfer = tx.paymentMethod === TRANSFER_METHOD;
   const isIncome = tx.type === 'income';
-  const { Icon, color } = isTransfer
-    ? { Icon: ArrowLeftRight, color: '#8E8E99' }
+  const { Icon, color, tint } = isTransfer
+    ? { Icon: ArrowLeftRight, ...NEUTRAL_META_COLORS }
     : getCategoryMeta(tx.category);
 
   return (
@@ -54,7 +54,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
       >
         <span
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-          style={{ backgroundColor: `${color}1F`, color }}
+          style={{ backgroundColor: tint, color }}
         >
           <Icon size={16} strokeWidth={1.75} />
         </span>

@@ -76,7 +76,7 @@ export const UpcomingStrip: React.FC<{ today: string }> = ({ today }) => {
         <ul className="-mx-1 flex flex-col">
           {upcoming.map((item) => {
             const days = daysBetween(today, item.dueDate!);
-            const { Icon, color } = getCategoryMeta(item.category);
+            const { Icon, color, tint } = getCategoryMeta(item.category);
             const isIncome = item.type === 'income';
             const isConfirming = confirmingId === item.id;
 
@@ -84,7 +84,7 @@ export const UpcomingStrip: React.FC<{ today: string }> = ({ today }) => {
               <li key={item.id} className="flex items-center gap-3 rounded-lg px-1 py-2">
                 <span
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-                  style={{ backgroundColor: `${color}1F`, color }}
+                  style={{ backgroundColor: tint, color }}
                 >
                   <Icon size={16} strokeWidth={1.75} />
                 </span>

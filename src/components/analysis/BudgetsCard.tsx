@@ -108,13 +108,13 @@ export const BudgetsCard: React.FC<{ today: string }> = ({ today }) => {
           {categories
             .filter((c) => !NON_BUDGET_CATEGORIES.includes(c))
             .map((cat) => {
-              const { Icon, color } = getCategoryMeta(cat);
+              const { Icon, color, tint } = getCategoryMeta(cat);
               const average = monthlyAverage(cat);
               return (
                 <li key={cat} className="flex items-center gap-3">
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                    style={{ backgroundColor: `${color}1F`, color }}
+                    style={{ backgroundColor: tint, color }}
                   >
                     <Icon size={14} strokeWidth={1.75} />
                   </span>

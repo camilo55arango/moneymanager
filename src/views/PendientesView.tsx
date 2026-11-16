@@ -192,7 +192,7 @@ export const PendientesView: React.FC = () => {
     const isActive = activeItemId === item.id;
     const isIncome = item.type === 'income';
     const recurrence = getRecurrenceText(item.recurrence);
-    const { Icon, color } = getCategoryMeta(item.category);
+    const { Icon, color, tint } = getCategoryMeta(item.category);
 
     return (
       <li key={item.id}>
@@ -204,7 +204,7 @@ export const PendientesView: React.FC = () => {
         >
           <span
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-            style={{ backgroundColor: `${color}1F`, color }}
+            style={{ backgroundColor: tint, color }}
           >
             <Icon size={16} strokeWidth={1.75} />
           </span>

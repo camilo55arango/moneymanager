@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { ArrowLeftRight, Search } from 'lucide-react';
 import { useApp, CREDIT_CARD_METHOD, TRANSFER_METHOD, isSystemTransaction } from '../context/AppContext';
 import { formatCurrency } from '../utils/formatCurrency';
-import { getCategoryMeta } from '../utils/categories';
+import { getCategoryMeta, NEUTRAL_META_COLORS } from '../utils/categories';
 import { formatRelativeDay, todayString } from '../utils/dates';
 import { Transaction } from '../types';
 import { BudgetsCard } from '../components/analysis/BudgetsCard';
@@ -290,15 +290,15 @@ export const EstadisticasView: React.FC = () => {
             <ul className="divide-y divide-line">
               {visibleTransactions.map((tx) => {
                 const isTransfer = tx.paymentMethod === TRANSFER_METHOD;
-                const { Icon, color } = isTransfer
-                  ? { Icon: ArrowLeftRight, color: '#8E8E99' }
+                const { Icon, color, tint } = isTransfer
+                  ? { Icon: ArrowLeftRight, ...NEUTRAL_META_COLORS }
                   : getCategoryMeta(tx.category);
                 const isIncome = tx.type === 'income';
                 return (
                   <li key={tx.id} className="flex items-center gap-3 py-2.5">
                     <span
                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
-                      style={{ backgroundColor: `${color}1F`, color }}
+                      style={{ backgroundColor: tint, color }}
                     >
                       <Icon size={14} strokeWidth={1.75} />
                     </span>
