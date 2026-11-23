@@ -80,7 +80,7 @@ export const InitialSetupView: React.FC = () => {
               <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 required
                 placeholder="0"
                 value={walletInput}
@@ -99,7 +99,7 @@ export const InitialSetupView: React.FC = () => {
               <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 required
                 placeholder="0"
                 value={investmentInput}
@@ -118,7 +118,7 @@ export const InitialSetupView: React.FC = () => {
               <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder="0"
                 value={creditLimitInput}
                 onChange={(e) => setCreditLimitInput(formatInputNumber(e.target.value))}
@@ -136,7 +136,7 @@ export const InitialSetupView: React.FC = () => {
               <span className="pl-4 font-numeric-data text-numeric-data text-on-surface-variant">$</span>
               <input
                 type="text"
-                inputMode="numeric"
+                inputMode="decimal"
                 placeholder="0"
                 value={creditBalanceInput}
                 onChange={(e) => setCreditBalanceInput(formatInputNumber(e.target.value))}

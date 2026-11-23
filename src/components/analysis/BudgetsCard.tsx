@@ -123,7 +123,7 @@ export const BudgetsCard: React.FC<{ today: string }> = ({ today }) => {
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 font-mono text-sm text-fg-subtle">$</span>
                     <input
                       type="text"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       value={drafts[cat] ?? ''}
                       onChange={(e) => setDrafts((prev) => ({ ...prev, [cat]: formatInputNumber(e.target.value) }))}
                       placeholder={average > 0 ? formatInputNumber(average) : 'Sin límite'}

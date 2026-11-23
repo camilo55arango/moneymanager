@@ -6,7 +6,7 @@ import { formatCurrency } from '../utils/formatCurrency';
 import { getCategoryMeta } from '../utils/categories';
 import { addDays, formatShortDate, todayString } from '../utils/dates';
 import { BottomSheet } from './ui/BottomSheet';
-import { applyKey, NumericKeypad } from './ui/NumericKeypad';
+import { applyKey, formatTyped, NumericKeypad, typedAmount } from './ui/NumericKeypad';
 import { CompactInstallmentFields, parseInstallmentInputs } from './InstallmentFields';
 
 const VISIBLE_CATEGORIES = 7;
@@ -51,7 +51,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const amount = Number(digits) || 0;
+  const amount = typedAmount(digits);
 
   const reset = () => {
     setType('expense');
@@ -219,7 +219,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
             amount === 0 ? 'text-fg-subtle' : type === 'income' ? 'text-positive' : 'text-fg'
           }`}
         >
-          {formatCurrency(amount)}
+          {formatTyped(digits)}
         </p>
         {amount === 0 && <p className="text-xs text-fg-subtle">Déjalo en 0 si aún no sabes el monto</p>}
       </div>

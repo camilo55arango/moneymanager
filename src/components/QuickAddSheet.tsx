@@ -7,7 +7,7 @@ import { getCategoryMeta } from '../utils/categories';
 import { addDays, todayString } from '../utils/dates';
 import { CompactInstallmentFields, parseInstallmentInputs } from './InstallmentFields';
 import { BottomSheet } from './ui/BottomSheet';
-import { applyKey, NumericKeypad } from './ui/NumericKeypad';
+import { applyKey, formatTyped, NumericKeypad, typedAmount } from './ui/NumericKeypad';
 
 const VISIBLE_CATEGORIES = 7;
 const FREQUENCY_WINDOW_DAYS = 60;
@@ -49,7 +49,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const amount = Number(digits) || 0;
+  const amount = typedAmount(digits);
   const isCardPurchase = type === 'expense' && account === CREDIT_CARD_METHOD;
 
   const reset = () => {
@@ -219,7 +219,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
         }`}
         aria-live="polite"
       >
-        {formatCurrency(amount)}
+        {formatTyped(digits)}
       </p>
 
       {/* Categorías: las más usadas primero */}

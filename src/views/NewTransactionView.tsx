@@ -94,7 +94,7 @@ export const NewTransactionView: React.FC = () => {
             <span className="font-display-currency text-display-currency text-on-primary-container">$</span>
             <input
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               autoFocus
               placeholder="0"
               value={amount}

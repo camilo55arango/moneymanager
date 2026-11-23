@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CalendarClock, Check, ChevronDown, CreditCard, Pencil, Repeat, Trash2, TrendingUp, X, Zap } from 'lucide-react';
 import { useApp, CREDIT_CARD_METHOD, isCreditCardExpense as isCreditCardItem } from '../context/AppContext';
 import { PendingItem } from '../types';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, formatInputNumber, parseFormattedNumber, roundCents } from '../utils/formatCurrency';
 import { getCategoryMeta } from '../utils/categories';
 import { countOverdue, daysBetween, formatShortDate, todayString } from '../utils/dates';
 import {
@@ -131,7 +131,7 @@ export const PendientesView: React.FC = () => {
   Object.entries(getMinimumPaymentsByMonth(getCardCharges(transactions, pendingItems))).forEach(
     ([monthKey, amount]) => {
       if (monthKey < currentMonthKey) return;
-      const remaining = Math.round(amount - getStatementPayments(transactions, monthKey));
+      const remaining = roundCents(amount - getStatementPayments(transactions, monthKey));
       if (remaining <= 0) return;
       getMonthGroup(monthKey).cardMinimumPayment += remaining;
     }
@@ -184,7 +184,7 @@ export const PendientesView: React.FC = () => {
 
   const handlePayClick = (item: PendingItem) => {
     setPayModalItem(item);
-    setPayAmountInput(item.amount ? item.amount.toString() : '');
+    setPayAmountInput(item.amount ? formatInputNumber(item.amount) : '');
     setPayAccount(isCreditCardItem(item) ? CREDIT_CARD_METHOD : 'Billetera');
     setPayInstallments(String(item.installments ?? 1));
     setPayInterestRate(String(item.interestRate ?? 0));
@@ -198,10 +198,9 @@ export const PendientesView: React.FC = () => {
 
   const confirmPayment = () => {
     if (!payModalItem) return;
-    const finalAmount = parseFloat(payAmountInput);
     markPendingAsPaid(
       payModalItem.id,
-      isNaN(finalAmount) ? payModalItem.amount : finalAmount,
+      payAmountInput ? parseFormattedNumber(payAmountInput) : payModalItem.amount,
       payAccount,
       parseInstallmentInputs(payInstallments, payInterestRate)
     );
@@ -508,19 +507,18 @@ export const PendientesView: React.FC = () => {
                 <div className="relative flex items-center">
                   <span className="absolute left-3 font-mono text-fg-subtle">$</span>
                   <input
-                    type="number"
-                    step="any"
+                    type="text"
                     inputMode="decimal"
                     value={payAmountInput}
-                    onChange={(e) => setPayAmountInput(e.target.value)}
+                    onChange={(e) => setPayAmountInput(formatInputNumber(e.target.value))}
                     className="w-full rounded-xl border border-line bg-canvas py-2.5 pl-7 pr-3 font-mono text-lg text-fg outline-none focus:border-line-strong"
                     placeholder="0"
                   />
                 </div>
-                {payModalItem.amount > 0 && Number(payAmountInput) !== payModalItem.amount && (
+                {payModalItem.amount > 0 && parseFormattedNumber(payAmountInput) !== payModalItem.amount && (
                   <button
                     type="button"
-                    onClick={() => setPayAmountInput(payModalItem.amount.toString())}
+                    onClick={() => setPayAmountInput(formatInputNumber(payModalItem.amount))}
                     className="text-xs text-accent cursor-pointer"
                   >
                     Usar el valor registrado ({formatCurrency(payModalItem.amount)})
@@ -560,7 +558,7 @@ export const PendientesView: React.FC = () => {
                           Se suma a la deuda de la tarjeta; la billetera no cambia hasta que la pagues.
                         </p>
                         <InstallmentFields
-                          amount={parseFloat(payAmountInput) || 0}
+                          amount={parseFormattedNumber(payAmountInput)}
                           installments={payInstallments}
                           interestRate={payInterestRate}
                           onInstallmentsChange={setPayInstallments}

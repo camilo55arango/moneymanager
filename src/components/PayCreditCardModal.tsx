@@ -85,7 +85,7 @@ export const PayCreditCardModal: React.FC = () => {
                 <span className="text-3xl font-bold text-primary">$</span>
                 <input
                   type="text"
-                  inputMode="numeric"
+                  inputMode="decimal"
                   autoFocus
                   placeholder="0"
                   value={amount}
