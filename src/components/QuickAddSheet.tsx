@@ -1,18 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Check, Minus, Plus } from 'lucide-react';
+import { CalendarDays, Check } from 'lucide-react';
 import { useApp, isSystemTransaction, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { Transaction, TransactionType } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { getCategoryMeta } from '../utils/categories';
-import { getInstallmentCost } from '../utils/creditCard';
 import { addDays, todayString } from '../utils/dates';
-import { HIGH_INTEREST_PCT } from './InstallmentFields';
+import { CompactInstallmentFields, parseInstallmentInputs } from './InstallmentFields';
 import { BottomSheet } from './ui/BottomSheet';
 import { applyKey, NumericKeypad } from './ui/NumericKeypad';
 
 const VISIBLE_CATEGORIES = 7;
 const FREQUENCY_WINDOW_DAYS = 60;
-const MAX_INSTALLMENTS = 48;
 // Categorías que se ofrecen primero para ingresos y al final para gastos
 const INCOME_CATEGORIES = ['Salario', 'I. Extra', 'Inversiones'];
 
@@ -46,6 +44,8 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
   const [name, setName] = useState('');
   const [date, setDate] = useState(today);
   const [installments, setInstallments] = useState(1);
+  // null = se usa el interés de la última compra a cuotas
+  const [interestInput, setInterestInput] = useState<string | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +60,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
     setName('');
     setDate(todayString());
     setInstallments(1);
+    setInterestInput(null);
     setShowAllCategories(false);
   };
 
@@ -113,8 +114,6 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
         ?.interestRate ?? 0,
     [ownTransactions]
   );
-  const interestRate = installments > 1 ? lastInterestRate : 0;
-  const cost = getInstallmentCost(amount, installments, interestRate);
 
   const pressKey = (key: string) => setDigits((d) => applyKey(d, key));
 
@@ -134,6 +133,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
     setCategory(tx.category);
     if (tx.paymentMethod && ACCOUNTS[type].some((a) => a.value === tx.paymentMethod)) setAccount(tx.paymentMethod);
     if (tx.installments) setInstallments(tx.installments);
+    if (tx.interestRate !== undefined) setInterestInput(String(tx.interestRate));
   };
 
   const openFullForm = () => {
@@ -154,7 +154,9 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
       paymentMethod: selectedCategory === 'Inversiones' ? 'Inversiones' : account,
       note: '',
       status: type === 'income' ? 'received' : 'paid',
-      ...(isCardPurchase && selectedCategory !== 'Inversiones' && { installments, interestRate }),
+      ...(isCardPurchase &&
+        selectedCategory !== 'Inversiones' &&
+        parseInstallmentInputs(String(installments), installments > 1 ? interestInput ?? String(lastInterestRate) : '0')),
     });
     navigator.vibrate?.(10);
     setSaving(false);
@@ -266,40 +268,13 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
       )}
 
       {isCardPurchase && selectedCategory !== 'Inversiones' && (
-        <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              aria-label="Menos cuotas"
-              onClick={() => setInstallments((n) => Math.max(1, n - 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-fg cursor-pointer"
-            >
-              <Minus size={14} />
-            </button>
-            <span className="w-16 text-center text-sm text-fg">
-              {installments} {installments === 1 ? 'cuota' : 'cuotas'}
-            </span>
-            <button
-              type="button"
-              aria-label="Más cuotas"
-              onClick={() => setInstallments((n) => Math.min(MAX_INSTALLMENTS, n + 1))}
-              className="flex h-7 w-7 items-center justify-center rounded-full border border-line text-fg cursor-pointer"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
-          {installments > 1 && amount > 0 && (
-            <p
-              className={`text-right text-xs ${
-                cost.interestPct >= HIGH_INTEREST_PCT ? 'text-negative' : 'text-fg-muted'
-              }`}
-            >
-              {interestRate > 0
-                ? `+${formatCurrency(Math.round(cost.totalInterest))} de interés (${interestRate}% M.V.)`
-                : 'Sin interés'}
-            </p>
-          )}
-        </div>
+        <CompactInstallmentFields
+          amount={amount}
+          installments={installments}
+          interestRate={interestInput ?? String(lastInterestRate)}
+          onInstallmentsChange={setInstallments}
+          onInterestRateChange={setInterestInput}
+        />
       )}
 
       <div>

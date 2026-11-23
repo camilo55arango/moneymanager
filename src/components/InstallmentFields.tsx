@@ -1,9 +1,11 @@
 import React from 'react';
+import { Minus, Plus } from 'lucide-react';
 import { formatCurrency } from '../utils/formatCurrency';
 import { getFirstInstallment, getInstallmentCost } from '../utils/creditCard';
 
 // A partir de este % de interés sobre el valor de la compra el costo se resalta
 export const HIGH_INTEREST_PCT = 5;
+export const MAX_INSTALLMENTS = 48;
 
 interface InstallmentFieldsProps {
   amount: number;
@@ -71,6 +73,78 @@ export const InstallmentFields: React.FC<InstallmentFieldsProps> = ({
         >
           Total a pagar {formatCurrency(Math.round(cost.total))} (+{formatCurrency(Math.round(cost.totalInterest))} de
           interés, +{cost.interestPct.toFixed(1)}%)
+        </p>
+      )}
+    </div>
+  );
+};
+
+interface CompactInstallmentFieldsProps {
+  amount: number;
+  installments: number;
+  interestRate: string;
+  onInstallmentsChange: (value: number) => void;
+  onInterestRateChange: (value: string) => void;
+}
+
+// Versión para las hojas rápidas: cuotas con −/+ y, si hay más de una, el interés mensual y su costo
+export const CompactInstallmentFields: React.FC<CompactInstallmentFieldsProps> = ({
+  amount,
+  installments,
+  interestRate,
+  onInstallmentsChange,
+  onInterestRateChange,
+}) => {
+  const rate = parseFloat(interestRate.replace(',', '.')) || 0;
+  const cost = getInstallmentCost(amount, installments, rate);
+  const stepClass = 'flex h-7 w-7 items-center justify-center rounded-full border border-line text-fg cursor-pointer';
+
+  return (
+    <div className="space-y-1.5 rounded-xl bg-surface-2 px-3 py-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            aria-label="Menos cuotas"
+            onClick={() => onInstallmentsChange(Math.max(1, installments - 1))}
+            className={stepClass}
+          >
+            <Minus size={14} />
+          </button>
+          <span className="w-16 text-center text-sm text-fg">
+            {installments} {installments === 1 ? 'cuota' : 'cuotas'}
+          </span>
+          <button
+            type="button"
+            aria-label="Más cuotas"
+            onClick={() => onInstallmentsChange(Math.min(MAX_INSTALLMENTS, installments + 1))}
+            className={stepClass}
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+        {installments > 1 && (
+          <label className="flex items-center gap-1.5 text-xs text-fg-muted">
+            Interés
+            <input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              value={interestRate}
+              onChange={(e) => onInterestRateChange(e.target.value)}
+              aria-label="Interés mensual %"
+              className="w-16 rounded-lg border border-line bg-canvas px-2 py-1 text-right font-mono text-sm text-fg outline-none focus:border-line-strong"
+            />
+            % M.V.
+          </label>
+        )}
+      </div>
+      {installments > 1 && amount > 0 && (
+        <p className={`text-xs ${cost.interestPct >= HIGH_INTEREST_PCT ? 'text-negative' : 'text-fg-muted'}`}>
+          {rate > 0
+            ? `+${formatCurrency(Math.round(cost.totalInterest))} de interés · total ${formatCurrency(Math.round(cost.total))}`
+            : 'Sin interés'}
         </p>
       )}
     </div>
