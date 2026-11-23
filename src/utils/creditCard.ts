@@ -1,5 +1,6 @@
 import { isCreditCardExpense, isCreditCardPayment } from '../context/AppContext';
 import { PendingItem, Transaction } from '../types';
+import { roundCents } from './formatCurrency';
 
 // Día del mes en que cierra el extracto de la tarjeta y día en que se paga
 export const CREDIT_CARD_CUTOFF_DAY = 19;
@@ -69,7 +70,7 @@ export const getInstallmentSchedule = (charge: CardCharge) => {
       cutoffDate: toDateString(new Date(cutYear, cutMonth - 1 + i, CREDIT_CARD_CUTOFF_DAY)),
       paymentDate: toDateString(new Date(payYear, payMonth - 1 + i, CREDIT_CARD_PAYMENT_DAY)),
       capital,
-      interest: Math.round(balanceBefore * rate),
+      interest: roundCents(balanceBefore * rate),
       balanceBefore,
     };
   });
@@ -117,15 +118,17 @@ export const getStatementPayments = (transactions: Transaction[], monthKey: stri
   const [year, month] = monthKey.split('-').map(Number);
   const from = toDateString(new Date(year, month - 2, CREDIT_CARD_CUTOFF_DAY));
   const to = toDateString(new Date(year, month - 1, CREDIT_CARD_CUTOFF_DAY));
-  return transactions
-    .filter((tx) => isCreditCardPayment(tx) && tx.date > from && tx.date <= to)
-    .reduce((sum, tx) => sum + tx.amount, 0);
+  return roundCents(
+    transactions
+      .filter((tx) => isCreditCardPayment(tx) && tx.date > from && tx.date <= to)
+      .reduce((sum, tx) => sum + tx.amount, 0)
+  );
 };
 
 // Primera cuota de una compra, para mostrarla al registrarla
 export const getFirstInstallment = (amount: number, installments: number, interestRate: number): number => {
   const n = Math.max(1, Math.floor(installments || 1));
-  return amount / n + Math.round(amount * (Math.max(0, interestRate || 0) / 100));
+  return amount / n + roundCents(amount * (Math.max(0, interestRate || 0) / 100));
 };
 
 // Costo total de una compra a cuotas: suma de los intereses de todo el plan de pagos

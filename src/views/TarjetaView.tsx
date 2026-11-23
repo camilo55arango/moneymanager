@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Check, Clock, CreditCard, Receipt } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { formatCurrency } from '../utils/formatCurrency';
+import { formatCurrency, roundCents } from '../utils/formatCurrency';
 import { formatShortDate, todayString } from '../utils/dates';
 import {
   buildCardStatements,
@@ -25,7 +25,7 @@ export const TarjetaView: React.FC = () => {
 
   const renderStatement = (statement: CardStatement, title: string) => {
     const paid = getStatementPayments(transactions, statement.paymentDate.slice(0, 7));
-    const isPaid = statement.minimumPayment > 0 && paid >= Math.round(statement.minimumPayment);
+    const isPaid = statement.minimumPayment > 0 && paid >= roundCents(statement.minimumPayment);
 
     return (
       <section key={statement.paymentDate} className="card overflow-hidden">
@@ -39,7 +39,7 @@ export const TarjetaView: React.FC = () => {
           <div className="text-right">
             <p className="text-xs text-fg-subtle">Pago mínimo</p>
             <p className="font-mono text-lg font-semibold text-fg">
-              {formatCurrency(Math.round(statement.minimumPayment))}
+              {formatCurrency(roundCents(statement.minimumPayment))}
             </p>
             {isPaid ? (
               <span className="inline-flex items-center gap-1 text-xs font-medium text-positive">
@@ -54,7 +54,7 @@ export const TarjetaView: React.FC = () => {
               )
             )}
             <p className="text-xs text-fg-subtle">
-              Total <span className="font-mono text-fg-muted">{formatCurrency(Math.round(statement.totalPayment))}</span>
+              Total <span className="font-mono text-fg-muted">{formatCurrency(roundCents(statement.totalPayment))}</span>
             </p>
           </div>
         </div>
@@ -91,7 +91,7 @@ export const TarjetaView: React.FC = () => {
                   </div>
                   <div className="shrink-0 text-right">
                     <p className="font-mono text-sm text-fg">
-                      {formatCurrency(Math.round(line.capital + line.interest))}
+                      {formatCurrency(roundCents(line.capital + line.interest))}
                     </p>
                     {line.interest > 0 && (
                       <p className="text-xs text-fg-subtle">Interés {formatCurrency(line.interest)}</p>

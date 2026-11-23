@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Check, ChevronRight, CreditCard } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
-import { formatCurrency } from '../../utils/formatCurrency';
+import { formatCurrency, roundCents } from '../../utils/formatCurrency';
 import { daysBetween, formatShortDate } from '../../utils/dates';
 import { buildCardStatements, getCardCharges, getStatementPayments } from '../../utils/creditCard';
 
@@ -14,8 +14,8 @@ export const CardPaymentCard: React.FC<{ today: string; className?: string }> = 
     [transactions, pendingItems, today]
   );
   const paid = getStatementPayments(transactions, statement.paymentDate.slice(0, 7));
-  const minimum = Math.round(statement.minimumPayment);
-  const remaining = Math.max(minimum - paid, 0);
+  const minimum = roundCents(statement.minimumPayment);
+  const remaining = Math.max(roundCents(minimum - paid), 0);
   const isPaid = minimum > 0 && remaining === 0;
   const days = daysBetween(today, statement.paymentDate);
 
@@ -58,7 +58,7 @@ export const CardPaymentCard: React.FC<{ today: string; className?: string }> = 
             <p className="mt-1 text-xs text-fg-subtle">Sin compras en este extracto</p>
           )}
           <p className="mt-1 text-xs text-fg-subtle">
-            Total <span className="font-mono text-fg-muted">{formatCurrency(Math.round(statement.totalPayment))}</span>
+            Total <span className="font-mono text-fg-muted">{formatCurrency(roundCents(statement.totalPayment))}</span>
           </p>
         </div>
         <button
