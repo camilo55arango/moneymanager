@@ -20,11 +20,16 @@
   --color-accent: #7805f2;
   --color-accent-soft: #7805f21f;
   --color-on-accent: #ffffff;
+  /* Dos familias: morado para marca y positivo, rosa para negativo y por vencer.
+     La urgencia se marca con la intensidad del rosa (warning es el rosa claro). */
   --color-positive: #7805f2;
-  --color-warning: #b5179e;
-  --color-negative: #d6246e;
-  --color-info: #6d28d9;
+  --color-warning: #e0569a;
+  --color-negative: #db2777;
+  --color-negative-soft: #db27771f;
+  --color-info: #7805f2;
   --color-brand: #7805f2;
+  --color-brand-2: #4f03a0;
+  --color-on-brand-negative: #ffc2dd;
   --color-on-brand: #ffffff;
 
   --radius-card: 14px;
@@ -71,19 +76,19 @@
   --color-on-secondary-fixed: #2a0156;
   --color-on-secondary-fixed-variant: #4f03a0;
 
-  --color-tertiary: #b5179e;
+  --color-tertiary: #db2777;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #fbe7f8;
-  --color-on-tertiary-container: #7a0f6a;
-  --color-tertiary-fixed: #f7cdef;
-  --color-tertiary-fixed-dim: #e27fd2;
-  --color-on-tertiary-fixed: #3d0735;
-  --color-on-tertiary-fixed-variant: #7a0f6a;
+  --color-tertiary-container: #fdeaf3;
+  --color-on-tertiary-container: #9d1450;
+  --color-tertiary-fixed: #ffd6e8;
+  --color-tertiary-fixed-dim: #f9a8d4;
+  --color-on-tertiary-fixed: #4a0a26;
+  --color-on-tertiary-fixed-variant: #9d1450;
 
-  --color-error: #d6246e;
+  --color-error: #db2777;
   --color-on-error: #ffffff;
-  --color-error-container: #fde7ef;
-  --color-on-error-container: #8c1145;
+  --color-error-container: #fdeaf3;
+  --color-on-error-container: #9d1450;
 
   --spacing-unit: 4px;
   --spacing-container-padding-mobile: 16px;
@@ -113,10 +118,13 @@ html.dark {
   --color-accent-soft: #9d50ff29;
   --color-on-accent: #ffffff;
   --color-positive: #9d50ff;
-  --color-warning: #e879f9;
-  --color-negative: #ff6b9e;
-  --color-info: #a78bfa;
+  --color-warning: #f9a8d4;
+  --color-negative: #f472b6;
+  --color-negative-soft: #f472b629;
+  --color-info: #9d50ff;
   --color-brand: #2a0c55;
+  --color-brand-2: #14062b;
+  --color-on-brand-negative: #ffc2dd;
   --color-on-brand: #ffffff;
 
   --color-background: #09090b;
@@ -149,15 +157,15 @@ html.dark {
   --color-secondary-container: #2c1450;
   --color-on-secondary-container: #dcc6ff;
 
-  --color-tertiary: #e879f9;
-  --color-on-tertiary: #2b0627;
-  --color-tertiary-container: #3d0b37;
-  --color-on-tertiary-container: #f7cdef;
+  --color-tertiary: #f472b6;
+  --color-on-tertiary: #2b0618;
+  --color-tertiary-container: #3d0f22;
+  --color-on-tertiary-container: #ffc2dd;
 
-  --color-error: #ff6b9e;
+  --color-error: #f472b6;
   --color-on-error: #09090b;
   --color-error-container: #3d0f22;
-  --color-on-error-container: #ffc2d6;
+  --color-on-error-container: #ffc2dd;
 }
 
 /* Los paneles de los formularios usan bg-white: se pintan como caja gris, igual que las tarjetas */
