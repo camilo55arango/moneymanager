@@ -100,7 +100,7 @@ export const AccountTiles: React.FC = () => {
           <>
             <div className="mt-2 h-1 w-full overflow-hidden rounded-full bg-surface-2">
               <div
-                className={`h-full rounded-full ${usedPct >= 80 ? 'bg-negative' : usedPct >= 50 ? 'bg-warning' : 'bg-fg-muted'}`}
+                className={`h-full rounded-full ${usedPct >= 80 ? 'bg-negative' : usedPct >= 50 ? 'bg-warning' : 'bg-accent'}`}
                 style={{ width: `${usedPct}%` }}
               />
             </div>

@@ -333,7 +333,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
                   {installments > 1 && amount > 0 && (
                     <p
                       className={`text-right text-xs ${
-                        cost.interestPct >= HIGH_INTEREST_PCT ? 'text-warning' : 'text-fg-muted'
+                        cost.interestPct >= HIGH_INTEREST_PCT ? 'text-negative' : 'text-fg-muted'
                       }`}
                     >
                       {interestRate > 0

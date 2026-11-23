@@ -63,7 +63,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
           <p className="truncate text-sm text-fg">{tx.name}</p>
           <p className="truncate text-xs text-fg-subtle">
             {tx.category} · {accountLabel(tx)}
-            {tx.status === 'pending' && <span className="ml-1 text-warning">· Pendiente</span>}
+            {tx.status === 'pending' && <span className="ml-1 text-fg-muted">· Pendiente</span>}
           </p>
         </div>
 

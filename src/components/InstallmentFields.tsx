@@ -66,7 +66,7 @@ export const InstallmentFields: React.FC<InstallmentFieldsProps> = ({
       {amount > 0 && cost.totalInterest > 0 && (
         <p
           className={`text-xs font-medium ${
-            cost.interestPct >= HIGH_INTEREST_PCT ? 'text-warning' : 'text-on-surface-variant'
+            cost.interestPct >= HIGH_INTEREST_PCT ? 'text-negative' : 'text-on-surface-variant'
           }`}
         >
           Total a pagar {formatCurrency(Math.round(cost.total))} (+{formatCurrency(Math.round(cost.totalInterest))} de

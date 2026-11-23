@@ -23,11 +23,11 @@ export const BudgetInsight: React.FC<{ today: string }> = ({ today }) => {
     <button
       type="button"
       onClick={() => setCurrentView('estadisticas')}
-      className="card flex w-full items-center gap-3 p-3 text-left hover:bg-surface-2 transition-colors cursor-pointer"
+      className="flex w-full items-center gap-3 rounded-card border-l-4 border-negative bg-negative-soft p-3 text-left hover:opacity-90 transition-opacity cursor-pointer"
     >
       <span
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-          isOver ? 'bg-negative/10 text-negative' : 'bg-warning/10 text-warning'
+          isOver ? 'bg-negative text-white' : 'bg-surface-3 text-negative'
         }`}
       >
         <TriangleAlert size={16} strokeWidth={1.75} />

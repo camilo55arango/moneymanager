@@ -17,7 +17,7 @@ const dueLabel = (days: number, dueDate: string) => {
 };
 
 const dueTone = (days: number) =>
-  days < 0 ? 'text-negative' : days <= 3 ? 'text-warning' : 'text-fg-subtle';
+  days < 0 ? 'font-medium text-negative' : days <= 3 ? 'w-fit rounded-full bg-negative-soft px-1.5 text-negative' : 'text-fg-subtle';
 
 // Pendientes vencidos y de los próximos 7 días, con pago en dos toques
 export const UpcomingStrip: React.FC<{ today: string }> = ({ today }) => {

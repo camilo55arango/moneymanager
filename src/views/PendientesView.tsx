@@ -39,13 +39,13 @@ const RECURRENCE_LABELS: Record<string, string> = {
 
 const getRecurrenceText = (recurrence?: string) => (recurrence ? RECURRENCE_LABELS[recurrence] ?? null : null);
 
-// Texto y color del vencimiento: rojo solo si ya venció, ámbar si vence en los próximos 5 días
+// Texto y color del vencimiento: rosa sólido si ya venció, chip rosa suave si vence en los próximos 5 días
 const getDueInfo = (days: number | null, dueDate: string | null): { label: string; tone: string } => {
   if (days === null || !dueDate) return { label: 'Sin fecha', tone: 'text-fg-subtle' };
-  if (days < 0) return { label: `Vencido hace ${-days} ${-days === 1 ? 'día' : 'días'}`, tone: 'text-negative' };
-  if (days === 0) return { label: 'Vence hoy', tone: 'text-warning' };
-  if (days === 1) return { label: 'Mañana', tone: 'text-warning' };
-  if (days <= 5) return { label: `${formatShortDate(dueDate)} · en ${days} días`, tone: 'text-warning' };
+  if (days < 0) return { label: `Vencido hace ${-days} ${-days === 1 ? 'día' : 'días'}`, tone: 'font-medium text-negative' };
+  if (days === 0) return { label: 'Vence hoy', tone: 'rounded-full bg-negative-soft px-1.5 text-negative' };
+  if (days === 1) return { label: 'Mañana', tone: 'rounded-full bg-negative-soft px-1.5 text-negative' };
+  if (days <= 5) return { label: `${formatShortDate(dueDate)} · en ${days} días`, tone: 'rounded-full bg-negative-soft px-1.5 text-negative' };
   return { label: formatShortDate(dueDate), tone: 'text-fg-subtle' };
 };
 
@@ -296,7 +296,7 @@ export const PendientesView: React.FC = () => {
 
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 pt-4 pb-36 md:px-8 md:pt-6">
-      <p className="text-sm text-fg-muted">
+      <p className={`text-sm ${overdueCount > 0 ? 'text-negative' : 'text-fg-muted'}`}>
         {pendingItems.length === 0
           ? 'Facturas, deudas e ingresos por recibir'
           : overdueCount > 0
@@ -335,7 +335,13 @@ export const PendientesView: React.FC = () => {
                 {group.isCurrent && (
                   <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">Este mes</span>
                 )}
-                <span className="text-xs text-fg-subtle">{group.items.length}</span>
+                <span
+                  className={`text-xs ${
+                    isOverdueGroup ? 'rounded-full bg-negative px-2 py-0.5 font-medium text-white' : 'text-fg-subtle'
+                  }`}
+                >
+                  {group.items.length}
+                </span>
                 <span
                   className={`ml-auto font-mono text-sm ${
                     groupTotal < 0 ? 'text-negative' : groupTotal > 0 ? 'text-positive' : 'text-fg-subtle'
@@ -347,7 +353,7 @@ export const PendientesView: React.FC = () => {
               </button>
 
               {!isCollapsed && (
-                <div className="card overflow-hidden">
+                <div className={`card overflow-hidden ${isOverdueGroup ? 'border-l-4 border-l-negative' : ''}`}>
                   {group.groupKey !== NO_DATE_KEY && (
                     <div className="border-b border-line px-4 py-3">
                       <dl className="grid grid-cols-3 gap-3 text-xs">
