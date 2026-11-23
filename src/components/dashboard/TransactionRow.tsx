@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, useAnimationControls } from 'motion/react';
 import { ArrowLeftRight, Trash2 } from 'lucide-react';
 import { CREDIT_CARD_METHOD, TRANSFER_METHOD } from '../../context/AppContext';
@@ -25,6 +25,8 @@ interface TransactionRowProps {
 // Fila de movimiento: toque para editar, deslizar a la izquierda (o el botón en escritorio) para eliminar
 export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDelete }) => {
   const controls = useAnimationControls();
+  // El fondo de eliminar solo existe al arrastrar; en reposo asomaría por las esquinas redondeadas
+  const [isDragging, setIsDragging] = useState(false);
   const isTransfer = tx.paymentMethod === TRANSFER_METHOD;
   const isIncome = tx.type === 'income';
   const { Icon, color, tint } = isTransfer
@@ -34,7 +36,11 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
   return (
     <li className="group relative overflow-hidden rounded-xl">
       {/* Fondo que aparece al deslizar */}
-      <div className="absolute inset-0 flex items-center justify-end bg-negative px-5 text-on-negative">
+      <div
+        className={`absolute inset-0 flex items-center justify-end bg-negative px-5 text-on-negative ${
+          isDragging ? '' : 'opacity-0'
+        }`}
+      >
         <Trash2 size={18} strokeWidth={1.75} />
       </div>
 
@@ -44,9 +50,12 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
         dragElastic={{ left: 0.6, right: 0 }}
         dragDirectionLock
         animate={controls}
+        onDragStart={() => setIsDragging(true)}
         onDragEnd={(_, info) => {
           if (info.offset.x < SWIPE_DELETE_THRESHOLD) {
             controls.start({ x: '-100%', transition: { duration: 0.18 } }).then(() => onDelete(tx));
+          } else {
+            setIsDragging(false);
           }
         }}
         onTap={() => onEdit(tx)}
