@@ -214,12 +214,13 @@ export const InitialSetupView: React.FC = () => {
 
         {/* Context Card */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-stack-md">
-          <div className="bg-primary-container p-stack-md rounded-xl text-on-primary-fixed flex flex-col gap-unit shadow-sm border border-primary/20">
-            <div className="flex items-center gap-2 text-secondary-fixed-dim">
+          {/* Mismo degradado de marca que el header: texto blanco legible en claro y en oscuro */}
+          <div className="bg-gradient-to-r from-brand to-brand-2 p-stack-md rounded-xl text-on-brand flex flex-col gap-unit shadow-sm">
+            <div className="flex items-center gap-2 text-on-brand/80">
               <ShieldCheck size={20} strokeWidth={1.75} className="shrink-0" aria-hidden />
-              <h4 className="font-label-caps text-label-caps text-white font-bold">Seguridad Bancaria</h4>
+              <h4 className="font-label-caps text-label-caps text-on-brand font-bold">Seguridad Bancaria</h4>
             </div>
-            <p className="font-body-md text-body-md text-on-primary-fixed-variant opacity-80 text-xs">
+            <p className="font-body-md text-xs text-on-brand/85">
               Tus datos están encriptados localmente. Solo tú tienes acceso a tu información financiera.
             </p>
           </div>
