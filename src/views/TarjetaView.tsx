@@ -107,20 +107,20 @@ export const TarjetaView: React.FC = () => {
   };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-4 pt-4 pb-36 md:px-8 md:pt-6">
+    <main className="mx-auto max-w-2xl space-y-4 px-4 pt-4 pb-36 md:px-8 md:pt-6 xl:max-w-[1320px]">
       <p className="text-sm text-fg-muted">
         Corte los {CREDIT_CARD_CUTOFF_DAY} · Pago los {CREDIT_CARD_PAYMENT_DAY} del mes siguiente
       </p>
 
       {/* Deuda actual y uso del cupo */}
-      <section className="card p-5">
+      <section className="card p-5 xl:p-8">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="flex items-center gap-2 text-sm text-fg-muted">
               <CreditCard size={16} strokeWidth={1.75} />
               Deuda actual
             </p>
-            <p className="mt-1 font-mono text-[32px] font-semibold leading-10 tracking-tight text-fg">
+            <p className="mt-1 font-mono text-[32px] font-semibold leading-10 tracking-tight text-fg xl:text-[44px] xl:leading-tight">
               {formatCurrency(creditCardBalance)}
             </p>
           </div>
@@ -135,7 +135,7 @@ export const TarjetaView: React.FC = () => {
         </div>
         {creditLimit > 0 ? (
           <>
-            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+            <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-surface-2 xl:h-2">
               <div
                 className={`h-full rounded-full ${usedPct >= 80 ? 'bg-negative' : usedPct >= 50 ? 'bg-warning' : 'bg-accent'}`}
                 style={{ width: `${usedPct}%` }}
@@ -150,7 +150,10 @@ export const TarjetaView: React.FC = () => {
         )}
       </section>
 
-      {statements.map((statement, i) => renderStatement(statement, i === 0 ? 'Extracto actual' : 'Próximo extracto'))}
+      {/* Desde xl los dos extractos van lado a lado para comparar los pagos */}
+      <div className="space-y-4 xl:grid xl:grid-cols-2 xl:items-start xl:gap-4 xl:space-y-0">
+        {statements.map((statement, i) => renderStatement(statement, i === 0 ? 'Extracto actual' : 'Próximo extracto'))}
+      </div>
 
       <p className="text-xs text-fg-subtle">
         Las cuotas se calculan con abono constante a capital más el interés mensual sobre el saldo de cada compra.

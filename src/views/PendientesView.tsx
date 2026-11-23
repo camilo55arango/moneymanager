@@ -151,6 +151,17 @@ export const PendientesView: React.FC = () => {
   const datedOffset = groupMap[NO_DATE_KEY] ? 1 : 0;
 
   const overdueCount = countOverdue(pendingItems, today);
+  const overdueExpense = pendingItems
+    .filter((p) => p.dueDate !== null && p.dueDate < today && p.type !== 'income')
+    .reduce((sum, p) => sum + p.amount, 0);
+
+  // Resumen lateral (escritorio): el mes actual y el siguiente
+  const [currentYear, currentMonth] = currentMonthKey.split('-').map(Number);
+  const nextMonthDate = new Date(currentYear, currentMonth, 1);
+  const nextMonthKey = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
+  const summaryGroups = [currentMonthKey, nextMonthKey]
+    .map((key) => groupMap[key])
+    .filter((group): group is GroupedPending => Boolean(group));
 
   const toggleGroup = (groupKey: string, collapsed: boolean) =>
     setCollapsedGroups((prev) => ({ ...prev, [groupKey]: !collapsed }));
@@ -295,7 +306,7 @@ export const PendientesView: React.FC = () => {
   };
 
   return (
-    <main className="mx-auto max-w-2xl space-y-6 px-4 pt-4 pb-36 md:px-8 md:pt-6">
+    <main className="mx-auto max-w-2xl space-y-6 px-4 pt-4 pb-36 md:px-8 md:pt-6 xl:max-w-[1320px]">
       <p className={`text-sm ${overdueCount > 0 ? 'text-negative' : 'text-fg-muted'}`}>
         {pendingItems.length === 0
           ? 'Facturas, deudas e ingresos por recibir'
@@ -304,87 +315,142 @@ export const PendientesView: React.FC = () => {
           : 'Todo al día · toca un pendiente para ver sus opciones'}
       </p>
 
-      {pendingItems.length === 0 ? (
-        <div className="card flex flex-col items-center gap-2 px-6 py-10 text-center">
-          <CalendarClock size={22} strokeWidth={1.75} className="text-fg-subtle" />
-          <p className="text-sm text-fg">No hay pendientes programados</p>
-          <p className="text-xs text-fg-subtle">Toca + para agregar una factura, una cuota o un ingreso esperado.</p>
-        </div>
-      ) : (
-        groupsList.map((group, index) => {
-          const isCollapsed =
-            collapsedGroups[group.groupKey] ?? isCollapsedByDefault(group.groupKey, index - datedOffset);
-          const groupTotal = group.totalIncome - group.totalWalletExpense - group.cardMinimumPayment;
-          const isOverdueGroup = group.groupKey === OVERDUE_KEY;
+      {/* Desde xl la lista va a la izquierda y el resumen del mes queda fijo a la derecha */}
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start xl:gap-6">
+        <div className="space-y-6">
+          {pendingItems.length === 0 ? (
+            <div className="card flex flex-col items-center gap-2 px-6 py-10 text-center">
+              <CalendarClock size={22} strokeWidth={1.75} className="text-fg-subtle" />
+              <p className="text-sm text-fg">No hay pendientes programados</p>
+              <p className="text-xs text-fg-subtle">Toca + para agregar una factura, una cuota o un ingreso esperado.</p>
+            </div>
+          ) : (
+            groupsList.map((group, index) => {
+              const isCollapsed =
+                collapsedGroups[group.groupKey] ?? isCollapsedByDefault(group.groupKey, index - datedOffset);
+              const groupTotal = group.totalIncome - group.totalWalletExpense - group.cardMinimumPayment;
+              const isOverdueGroup = group.groupKey === OVERDUE_KEY;
 
-          return (
-            <section key={group.groupKey}>
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.groupKey, isCollapsed)}
-                aria-expanded={!isCollapsed}
-                className="mb-2 flex w-full items-center gap-2 px-1 text-left cursor-pointer"
-              >
-                <ChevronDown
-                  size={16}
-                  className={`text-fg-subtle transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
-                />
-                <h2 className={`text-sm font-medium ${isOverdueGroup ? 'text-negative' : 'text-fg'}`}>
-                  {group.groupTitle}
-                </h2>
-                {group.isCurrent && (
-                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">Este mes</span>
-                )}
-                <span
-                  className={`text-xs ${
-                    isOverdueGroup ? 'rounded-full bg-negative px-2 py-0.5 font-medium text-on-negative' : 'text-fg-subtle'
-                  }`}
-                >
-                  {group.items.length}
-                </span>
-                <span
-                  className={`ml-auto font-mono text-sm ${
-                    groupTotal < 0 ? 'text-negative' : groupTotal > 0 ? 'text-positive' : 'text-fg-subtle'
-                  }`}
-                >
-                  {groupTotal > 0 ? '+' : groupTotal < 0 ? '−' : ''}
-                  {formatCurrency(Math.abs(groupTotal))}
-                </span>
-              </button>
+              return (
+                <section key={group.groupKey}>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(group.groupKey, isCollapsed)}
+                    aria-expanded={!isCollapsed}
+                    className="mb-2 flex w-full items-center gap-2 px-1 text-left cursor-pointer"
+                  >
+                    <ChevronDown
+                      size={16}
+                      className={`text-fg-subtle transition-transform duration-200 ${isCollapsed ? '-rotate-90' : ''}`}
+                    />
+                    <h2 className={`text-sm font-medium ${isOverdueGroup ? 'text-negative' : 'text-fg'}`}>
+                      {group.groupTitle}
+                    </h2>
+                    {group.isCurrent && (
+                      <span className="rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent">Este mes</span>
+                    )}
+                    <span
+                      className={`text-xs ${
+                        isOverdueGroup ? 'rounded-full bg-negative px-2 py-0.5 font-medium text-on-negative' : 'text-fg-subtle'
+                      }`}
+                    >
+                      {group.items.length}
+                    </span>
+                    <span
+                      className={`ml-auto font-mono text-sm ${
+                        groupTotal < 0 ? 'text-negative' : groupTotal > 0 ? 'text-positive' : 'text-fg-subtle'
+                      }`}
+                    >
+                      {groupTotal > 0 ? '+' : groupTotal < 0 ? '−' : ''}
+                      {formatCurrency(Math.abs(groupTotal))}
+                    </span>
+                  </button>
 
-              {!isCollapsed && (
-                <div className={`card overflow-hidden ${isOverdueGroup ? 'border-l-4 border-l-negative' : ''}`}>
-                  {group.groupKey !== NO_DATE_KEY && (
-                    <div className="border-b border-line px-4 py-3">
-                      <dl className="grid grid-cols-3 gap-3 text-xs">
-                        {[
-                          { label: 'Ingresos', value: group.totalIncome, sign: '+' },
-                          { label: 'Billetera', value: group.totalWalletExpense, sign: '−' },
-                          { label: 'Mín. tarjeta', value: group.cardMinimumPayment, sign: '−' },
-                        ].map((col) => (
-                          <div key={col.label} className="min-w-0">
-                            <dt className="text-fg-subtle">{col.label}</dt>
-                            <dd className={`mt-0.5 truncate font-mono text-sm ${col.value === 0 ? 'text-fg-subtle' : 'text-fg'}`}>
-                              {col.value === 0 ? formatCurrency(0) : `${col.sign}${formatCurrency(col.value)}`}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
-                      {group.totalCardExpense > 0 && (
-                        <p className="mt-2 flex items-center gap-1.5 text-xs text-fg-subtle">
-                          <CreditCard size={12} strokeWidth={1.75} />
-                          {formatCurrency(group.totalCardExpense)} con tarjeta · se paga en los próximos extractos
-                        </p>
+                  {!isCollapsed && (
+                    <div className={`card overflow-hidden ${isOverdueGroup ? 'border-l-4 border-l-negative' : ''}`}>
+                      {group.groupKey !== NO_DATE_KEY && (
+                        <div className="border-b border-line px-4 py-3">
+                          <dl className="grid grid-cols-3 gap-3 text-xs">
+                            {[
+                              { label: 'Ingresos', value: group.totalIncome, sign: '+' },
+                              { label: 'Billetera', value: group.totalWalletExpense, sign: '−' },
+                              { label: 'Mín. tarjeta', value: group.cardMinimumPayment, sign: '−' },
+                            ].map((col) => (
+                              <div key={col.label} className="min-w-0">
+                                <dt className="text-fg-subtle">{col.label}</dt>
+                                <dd className={`mt-0.5 truncate font-mono text-sm ${col.value === 0 ? 'text-fg-subtle' : 'text-fg'}`}>
+                                  {col.value === 0 ? formatCurrency(0) : `${col.sign}${formatCurrency(col.value)}`}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                          {group.totalCardExpense > 0 && (
+                            <p className="mt-2 flex items-center gap-1.5 text-xs text-fg-subtle">
+                              <CreditCard size={12} strokeWidth={1.75} />
+                              {formatCurrency(group.totalCardExpense)} con tarjeta · se paga en los próximos extractos
+                            </p>
+                          )}
+                        </div>
                       )}
+                      <ul className="divide-y divide-line">{group.items.map(renderItem)}</ul>
                     </div>
                   )}
-                  <ul className="divide-y divide-line">{group.items.map(renderItem)}</ul>
-                </div>
-              )}
-            </section>
-          );
-        })
-      )}
+                </section>
+              );
+            })
+          )}
+        </div>
+
+        {pendingItems.length > 0 && (
+          <aside className="hidden space-y-4 xl:sticky xl:top-20 xl:block">
+            {overdueCount > 0 && (
+              <div className="rounded-card border-l-4 border-negative bg-negative-soft p-4">
+                <p className="text-sm font-medium text-negative">
+                  {overdueCount} {overdueCount === 1 ? 'pendiente vencido' : 'pendientes vencidos'}
+                </p>
+                {overdueExpense > 0 && (
+                  <p className="mt-1 font-mono text-xl font-semibold tracking-tight text-negative">
+                    {formatCurrency(overdueExpense)}
+                  </p>
+                )}
+              </div>
+            )}
+            {summaryGroups.map((group) => {
+              const net = group.totalIncome - group.totalWalletExpense - group.cardMinimumPayment;
+              return (
+                <section key={group.groupKey} className="card p-4">
+                  <h2 className="mb-3 text-sm font-medium text-fg">{group.groupTitle}</h2>
+                  <dl className="space-y-2 text-sm">
+                    {[
+                      { label: 'Ingresos', value: group.totalIncome, sign: '+' },
+                      { label: 'Billetera', value: group.totalWalletExpense, sign: '−' },
+                      { label: 'Mín. tarjeta', value: group.cardMinimumPayment, sign: '−' },
+                    ].map((row) => (
+                      <div key={row.label} className="flex items-center justify-between gap-3">
+                        <dt className="text-fg-muted">{row.label}</dt>
+                        <dd className="font-mono text-fg">
+                          {row.value === 0 ? formatCurrency(0) : `${row.sign}${formatCurrency(row.value)}`}
+                        </dd>
+                      </div>
+                    ))}
+                    <div className="flex items-center justify-between gap-3 border-t border-line pt-2">
+                      <dt className="font-medium text-fg">Neto</dt>
+                      <dd
+                        className={`font-mono text-base font-semibold ${
+                          net < 0 ? 'text-negative' : net > 0 ? 'text-positive' : 'text-fg-subtle'
+                        }`}
+                      >
+                        {net > 0 ? '+' : net < 0 ? '−' : ''}
+                        {formatCurrency(Math.abs(net))}
+                      </dd>
+                    </div>
+                  </dl>
+                </section>
+              );
+            })}
+          </aside>
+        )}
+      </div>
 
       {/* Confirmación de pago */}
       <AnimatePresence>
