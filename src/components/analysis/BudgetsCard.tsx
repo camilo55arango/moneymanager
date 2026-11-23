@@ -12,7 +12,7 @@ const AVERAGE_MONTHS = 3;
 
 const STATE_STYLES: Record<BudgetStatus['state'], { bar: string; text: string }> = {
   over: { bar: 'bg-negative', text: 'text-negative' },
-  ahead: { bar: 'bg-warning', text: 'text-warning' },
+  ahead: { bar: 'bg-warning', text: 'text-negative' },
   ok: { bar: 'bg-accent', text: 'text-fg-subtle' },
 };
 
