@@ -15,15 +15,15 @@ interface AccountRowProps {
 }
 
 // En móvil cada cuenta es una fila (datos a la izquierda, acción a la derecha);
-// desde md las tres quedan en columnas dentro de la misma tarjeta
+// desde md las tres quedan en columnas dentro de la misma tarjeta, y desde xl centradas
 const AccountRow: React.FC<AccountRowProps> = ({ Icon, label, amount, children, action }) => (
-  <div className="flex items-center justify-between gap-3 p-4 md:flex-col md:items-start md:justify-between md:gap-4 md:p-5">
+  <div className="flex items-center justify-between gap-3 p-4 md:flex-col md:items-start md:justify-between md:gap-4 md:p-5 xl:items-center xl:px-8 xl:py-8 xl:text-center">
     <div className="min-w-0 flex-1 md:w-full">
-      <div className="flex items-center gap-2 text-sm text-fg-muted">
+      <div className="flex items-center gap-2 text-sm text-fg-muted xl:justify-center">
         <Icon size={16} strokeWidth={1.75} className="shrink-0" />
         {label}
       </div>
-      <p className="mt-1 truncate font-mono text-xl font-semibold tracking-tight text-fg md:text-2xl">
+      <p className="mt-1 truncate font-mono text-xl font-semibold tracking-tight text-fg md:text-2xl xl:text-[40px] xl:leading-tight">
         {formatCurrency(amount)}
       </p>
       {children}
