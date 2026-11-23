@@ -11,6 +11,7 @@ interface InstallmentFieldsProps {
   amount: number;
   installments: string;
   interestRate: string;
+  date?: string; // fecha de la compra; define los días de interés de la primera cuota
   onInstallmentsChange: (value: string) => void;
   onInterestRateChange: (value: string) => void;
 }
@@ -20,13 +21,14 @@ export const InstallmentFields: React.FC<InstallmentFieldsProps> = ({
   amount,
   installments,
   interestRate,
+  date,
   onInstallmentsChange,
   onInterestRateChange,
 }) => {
   const n = Math.max(1, parseInt(installments, 10) || 1);
   const rate = parseFloat(interestRate.replace(',', '.')) || 0;
-  const firstInstallment = getFirstInstallment(amount, n, rate);
-  const cost = getInstallmentCost(amount, n, rate);
+  const firstInstallment = getFirstInstallment(amount, n, rate, date);
+  const cost = getInstallmentCost(amount, n, rate, date);
 
   return (
     <div className="mt-3 pt-3 border-t border-outline-variant/40 space-y-2">
@@ -83,6 +85,7 @@ interface CompactInstallmentFieldsProps {
   amount: number;
   installments: number;
   interestRate: string;
+  date?: string;
   onInstallmentsChange: (value: number) => void;
   onInterestRateChange: (value: string) => void;
 }
@@ -92,11 +95,12 @@ export const CompactInstallmentFields: React.FC<CompactInstallmentFieldsProps> =
   amount,
   installments,
   interestRate,
+  date,
   onInstallmentsChange,
   onInterestRateChange,
 }) => {
   const rate = parseFloat(interestRate.replace(',', '.')) || 0;
-  const cost = getInstallmentCost(amount, installments, rate);
+  const cost = getInstallmentCost(amount, installments, rate, date);
   const stepClass = 'flex h-7 w-7 items-center justify-center rounded-full border border-line text-fg cursor-pointer';
 
   return (

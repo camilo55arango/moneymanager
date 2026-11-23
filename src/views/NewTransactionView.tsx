@@ -259,6 +259,7 @@ export const NewTransactionView: React.FC = () => {
               {isCardPurchase && (
                 <InstallmentFields
                   amount={parseFormattedNumber(amount)}
+                  date={date}
                   installments={installments}
                   interestRate={interestRate}
                   onInstallmentsChange={setInstallments}

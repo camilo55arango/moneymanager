@@ -1,6 +1,7 @@
 import { isCreditCardExpense, isCreditCardPayment } from '../context/AppContext';
 import { PendingItem, Transaction } from '../types';
 import { roundCents } from './formatCurrency';
+import { daysBetween, todayString } from './dates';
 
 // Día del mes en que cierra el extracto de la tarjeta y día en que se paga
 export const CREDIT_CARD_CUTOFF_DAY = 19;
@@ -53,13 +54,21 @@ export interface CardStatement {
   totalPayment: number; // lo necesario para saldar por completo las compras del extracto
 }
 
+// Días de interés de la primera cuota: desde la compra hasta el día anterior al corte,
+// porque el periodo facturado cierra el día antes del corte (ej. 22 oct -> corte 19 nov = 27 días)
+const DAYS_PER_MONTH = 30;
+const getFirstPeriodDays = (date: string, cutoffDate: string): number =>
+  Math.max(0, daysBetween(date, cutoffDate) - 1);
+
 // Cuotas con abono constante a capital: cada mes se paga capital / cuotas más el interés
-// sobre el capital que falta. La primera cuota llega en el extracto que corresponde a la fecha de compra.
+// sobre el capital que falta. La primera cuota llega en el extracto que corresponde a la fecha de compra
+// y solo lleva el interés de los días que pasaron hasta el corte; las demás, el mes completo.
 export const getInstallmentSchedule = (charge: CardCharge) => {
   const installments = Math.max(1, Math.floor(charge.installments || 1));
   const rate = Math.max(0, charge.interestRate || 0) / 100;
   const capital = charge.amount / installments;
   const first = getCreditCardCycle(charge.date);
+  const firstPeriodShare = getFirstPeriodDays(charge.date, first.cutoffDate) / DAYS_PER_MONTH;
   const [payYear, payMonth] = first.paymentDate.split('-').map(Number);
   const [cutYear, cutMonth] = first.cutoffDate.split('-').map(Number);
 
@@ -70,7 +79,7 @@ export const getInstallmentSchedule = (charge: CardCharge) => {
       cutoffDate: toDateString(new Date(cutYear, cutMonth - 1 + i, CREDIT_CARD_CUTOFF_DAY)),
       paymentDate: toDateString(new Date(payYear, payMonth - 1 + i, CREDIT_CARD_PAYMENT_DAY)),
       capital,
-      interest: roundCents(balanceBefore * rate),
+      interest: roundCents(balanceBefore * rate * (i === 0 ? firstPeriodShare : 1)),
       balanceBefore,
     };
   });
@@ -125,23 +134,29 @@ export const getStatementPayments = (transactions: Transaction[], monthKey: stri
   );
 };
 
-// Primera cuota de una compra, para mostrarla al registrarla
-export const getFirstInstallment = (amount: number, installments: number, interestRate: number): number => {
-  const n = Math.max(1, Math.floor(installments || 1));
-  return amount / n + roundCents(amount * (Math.max(0, interestRate || 0) / 100));
-};
-
-// Costo total de una compra a cuotas: suma de los intereses de todo el plan de pagos
-export const getInstallmentCost = (amount: number, installments: number, interestRate: number) => {
-  const totalInterest = getInstallmentSchedule({
+// Plan de pagos de una compra que aún se está registrando (sin fecha, se asume hoy)
+const getDraftSchedule = (amount: number, installments: number, interestRate: number, date?: string) =>
+  getInstallmentSchedule({
     id: '',
     name: '',
-    date: toDateString(new Date()),
+    date: date || todayString(),
     amount,
     installments,
     interestRate,
     source: 'registrado',
-  }).reduce((sum, entry) => sum + entry.interest, 0);
+  });
+
+// Primera cuota de una compra, para mostrarla al registrarla
+export const getFirstInstallment = (amount: number, installments: number, interestRate: number, date?: string): number => {
+  const [first] = getDraftSchedule(amount, installments, interestRate, date);
+  return first.capital + first.interest;
+};
+
+// Costo total de una compra a cuotas: suma de los intereses de todo el plan de pagos
+export const getInstallmentCost = (amount: number, installments: number, interestRate: number, date?: string) => {
+  const totalInterest = roundCents(
+    getDraftSchedule(amount, installments, interestRate, date).reduce((sum, entry) => sum + entry.interest, 0)
+  );
   return {
     totalInterest,
     total: amount + totalInterest,

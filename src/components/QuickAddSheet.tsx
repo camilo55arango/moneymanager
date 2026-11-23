@@ -270,6 +270,7 @@ export const QuickAddSheet: React.FC<QuickAddSheetProps> = ({ open, onClose }) =
       {isCardPurchase && selectedCategory !== 'Inversiones' && (
         <CompactInstallmentFields
           amount={amount}
+          date={date}
           installments={installments}
           interestRate={interestInput ?? String(lastInterestRate)}
           onInstallmentsChange={setInstallments}

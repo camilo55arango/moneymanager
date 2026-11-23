@@ -319,6 +319,7 @@ export const NewPendingView: React.FC = () => {
                   </p>
                   <InstallmentFields
                     amount={parseFormattedNumber(amount)}
+                    date={dueDate || undefined}
                     installments={installments}
                     interestRate={interestRate}
                     onInstallmentsChange={setInstallments}

@@ -559,6 +559,7 @@ export const PendientesView: React.FC = () => {
                         </p>
                         <InstallmentFields
                           amount={parseFormattedNumber(payAmountInput)}
+                          date={today}
                           installments={payInstallments}
                           interestRate={payInterestRate}
                           onInstallmentsChange={setPayInstallments}

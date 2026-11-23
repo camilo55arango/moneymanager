@@ -267,6 +267,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
       {usesCreditCard && (
         <CompactInstallmentFields
           amount={amount}
+          date={dueDate ?? undefined}
           installments={installments}
           interestRate={interestRate}
           onInstallmentsChange={setInstallments}
