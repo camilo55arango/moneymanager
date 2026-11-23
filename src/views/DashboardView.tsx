@@ -44,8 +44,9 @@ export const DashboardView: React.FC = () => {
     });
   };
 
+  // Las cuentas se montan sobre el banner morado del header
   return (
-    <main className="mx-auto max-w-[1100px] space-y-6 px-4 pt-4 pb-36 md:px-8 md:pt-6">
+    <main className="relative mx-auto -mt-8 max-w-[1100px] space-y-6 px-4 pb-36 md:px-8">
       <AccountTiles />
 
       <BudgetInsight today={today} />

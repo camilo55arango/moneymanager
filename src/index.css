@@ -26,6 +26,7 @@
   --color-warning: #e0569a;
   --color-negative: #db2777;
   --color-negative-soft: #db27771f;
+  --color-on-negative: #ffffff;
   --color-info: #7805f2;
   --color-brand: #7805f2;
   --color-brand-2: #4f03a0;
@@ -121,6 +122,7 @@ html.dark {
   --color-warning: #f9a8d4;
   --color-negative: #f472b6;
   --color-negative-soft: #f472b629;
+  --color-on-negative: #2b0618;
   --color-info: #9d50ff;
   --color-brand: #2a0c55;
   --color-brand-2: #14062b;

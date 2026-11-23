@@ -4,10 +4,17 @@ import { ArrowLeftRight, CalendarClock, ChartColumn, CreditCard, House, LucideIc
 import { useApp } from '../context/AppContext';
 import { ViewMode } from '../types';
 import { QuickAddSheet } from './QuickAddSheet';
+import { countOverdue, todayString } from '../utils/dates';
 
 const LONG_PRESS_MS = 450;
 
-const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon }> = ({ view, label, Icon }) => {
+// `alert` pinta un punto rosa sobre el ícono (p. ej. pendientes vencidos)
+const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon; alert?: boolean }> = ({
+  view,
+  label,
+  Icon,
+  alert,
+}) => {
   const { currentView, setCurrentView } = useApp();
   const isActive = currentView === view;
   return (
@@ -19,14 +26,17 @@ const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon }> = (
         isActive ? 'text-accent font-medium' : 'text-fg-subtle hover:text-fg-muted'
       }`}
     >
-      <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
+      <span className="relative">
+        <Icon size={20} strokeWidth={isActive ? 2 : 1.75} />
+        {alert && <span className="absolute -top-0.5 -right-1 h-2 w-2 rounded-full bg-negative ring-2 ring-surface-3" />}
+      </span>
       <span>{label}</span>
     </button>
   );
 };
 
 export const BottomNav: React.FC = () => {
-  const { currentView, setCurrentView, setEditingPendingItem, setIsTransferModalOpen } = useApp();
+  const { currentView, setCurrentView, setEditingPendingItem, setIsTransferModalOpen, pendingItems } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const pressTimer = useRef<number | null>(null);
@@ -125,7 +135,12 @@ export const BottomNav: React.FC = () => {
       <nav className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-[max(env(safe-area-inset-bottom),16px)] pointer-events-none">
         <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface-3/90 px-2 py-1.5 shadow-lg backdrop-blur-xl">
           <NavItem view="dashboard" label="Inicio" Icon={House} />
-          <NavItem view="pendientes" label="Pendientes" Icon={CalendarClock} />
+          <NavItem
+            view="pendientes"
+            label="Pendientes"
+            Icon={CalendarClock}
+            alert={countOverdue(pendingItems, todayString()) > 0}
+          />
 
           <button
             type="button"

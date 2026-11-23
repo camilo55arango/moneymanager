@@ -27,7 +27,7 @@ export const BudgetInsight: React.FC<{ today: string }> = ({ today }) => {
     >
       <span
         className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${
-          isOver ? 'bg-negative text-white' : 'bg-surface-3 text-negative'
+          isOver ? 'bg-negative text-on-negative' : 'bg-surface-3 text-negative'
         }`}
       >
         <TriangleAlert size={16} strokeWidth={1.75} />

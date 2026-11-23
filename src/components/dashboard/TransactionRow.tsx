@@ -34,7 +34,7 @@ export const TransactionRow: React.FC<TransactionRowProps> = ({ tx, onEdit, onDe
   return (
     <li className="group relative overflow-hidden rounded-xl">
       {/* Fondo que aparece al deslizar */}
-      <div className="absolute inset-0 flex items-center justify-end bg-negative px-5 text-white">
+      <div className="absolute inset-0 flex items-center justify-end bg-negative px-5 text-on-negative">
         <Trash2 size={18} strokeWidth={1.75} />
       </div>
 

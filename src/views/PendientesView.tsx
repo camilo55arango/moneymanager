@@ -5,7 +5,7 @@ import { useApp, CREDIT_CARD_METHOD, isCreditCardExpense as isCreditCardItem } f
 import { PendingItem } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
 import { getCategoryMeta } from '../utils/categories';
-import { daysBetween, formatShortDate, todayString } from '../utils/dates';
+import { countOverdue, daysBetween, formatShortDate, todayString } from '../utils/dates';
 import {
   getCreditCardCycle,
   getCardCharges,
@@ -150,7 +150,7 @@ export const PendientesView: React.FC = () => {
   // "Sin fecha" no cuenta para decidir qué meses se abren por defecto
   const datedOffset = groupMap[NO_DATE_KEY] ? 1 : 0;
 
-  const overdueCount = pendingItems.filter((p) => p.dueDate && p.dueDate < today).length;
+  const overdueCount = countOverdue(pendingItems, today);
 
   const toggleGroup = (groupKey: string, collapsed: boolean) =>
     setCollapsedGroups((prev) => ({ ...prev, [groupKey]: !collapsed }));
@@ -337,7 +337,7 @@ export const PendientesView: React.FC = () => {
                 )}
                 <span
                   className={`text-xs ${
-                    isOverdueGroup ? 'rounded-full bg-negative px-2 py-0.5 font-medium text-white' : 'text-fg-subtle'
+                    isOverdueGroup ? 'rounded-full bg-negative px-2 py-0.5 font-medium text-on-negative' : 'text-fg-subtle'
                   }`}
                 >
                   {group.items.length}

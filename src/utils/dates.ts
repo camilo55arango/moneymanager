@@ -16,6 +16,10 @@ export const daysBetween = (from: string, to: string): number =>
     (new Date(to + 'T00:00:00').getTime() - new Date(from + 'T00:00:00').getTime()) / (1000 * 60 * 60 * 24)
   );
 
+// Elementos con fecha de vencimiento anterior a hoy
+export const countOverdue = (items: { dueDate: string | null }[], today: string): number =>
+  items.filter((item) => item.dueDate !== null && item.dueDate < today).length;
+
 export const formatShortDate = (dateStr: string) =>
   new Date(dateStr + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' });
 

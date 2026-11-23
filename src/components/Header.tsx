@@ -1,18 +1,32 @@
 import React from 'react';
-import { ArrowLeft, Settings } from 'lucide-react';
+import { ArrowLeft, CalendarClock, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { ThemeToggle } from './ThemeToggle';
 import { avatarSrc } from '../utils/avatar';
+import { countOverdue, todayString } from '../utils/dates';
+import { formatCurrency } from '../utils/formatCurrency';
 
-// Franja de marca: fondo morado con texto e íconos en blanco
-const headerClass = 'sticky top-0 z-40 w-full bg-brand text-on-brand';
+// Franja de marca: degradado morado con texto e íconos en blanco
+const brandClass = 'w-full bg-gradient-to-r from-brand to-brand-2 text-on-brand';
+const headerClass = `sticky top-0 z-40 ${brandClass}`;
 const iconButtonClass =
   'flex h-9 w-9 items-center justify-center rounded-full text-on-brand/80 hover:bg-white/15 hover:text-on-brand transition-colors cursor-pointer';
 const avatarClass =
   'h-9 w-9 overflow-hidden rounded-full ring-2 ring-white/30 hover:ring-white/60 transition-shadow cursor-pointer';
 
 export const Header: React.FC = () => {
-  const { currentView, setCurrentView, goBack, user, editingTransaction, setEditingTransaction } = useApp();
+  const {
+    currentView,
+    setCurrentView,
+    goBack,
+    user,
+    editingTransaction,
+    setEditingTransaction,
+    walletBalance,
+    investmentBalance,
+    creditCardBalance,
+    pendingItems,
+  } = useApp();
 
   const getTitle = () => {
     switch (currentView) {
@@ -40,16 +54,18 @@ export const Header: React.FC = () => {
   const isFormView = currentView === 'new-transaction' || currentView === 'new-pending';
   const isSetupView = currentView === 'setup' || currentView === 'login';
 
-  // En el Inicio el header solo saluda: el contenido es el protagonista
+  // En el Inicio el header es un banner: saludo, disponible neto y aviso de vencidos en rosa
   if (currentView === 'dashboard') {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
     const firstName = user.name.split(' ')[0];
     const dateLabel = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+    const netBalance = walletBalance + investmentBalance - creditCardBalance;
+    const overdueCount = countOverdue(pendingItems, todayString());
 
     return (
-      <header className={headerClass}>
-        <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between px-4 md:px-8">
+      <header className={`${brandClass} rounded-b-[24px] pb-12`}>
+        <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-3 px-4 md:px-8">
           <div className="min-w-0">
             <p className="truncate text-base font-semibold">
               {greeting}
@@ -59,6 +75,16 @@ export const Header: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            {overdueCount > 0 && (
+              <button
+                type="button"
+                onClick={() => setCurrentView('pendientes')}
+                className="flex shrink-0 items-center gap-1.5 rounded-full bg-negative px-2.5 py-1 text-xs font-medium text-on-negative shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
+              >
+                <CalendarClock size={14} strokeWidth={2} />
+                {overdueCount} {overdueCount === 1 ? 'vencido' : 'vencidos'}
+              </button>
+            )}
             <ThemeToggle className="text-on-brand/80 hover:bg-white/15 hover:text-on-brand" />
             <button
               type="button"
@@ -83,6 +109,19 @@ export const Header: React.FC = () => {
               />
             </button>
           </div>
+        </div>
+
+        <div className="mx-auto w-full max-w-[1100px] px-4 pt-2 md:px-8">
+          <p className="text-xs text-on-brand/70">Disponible neto</p>
+          <p
+            className={`mt-1 font-mono text-3xl font-semibold tracking-tight md:text-4xl ${
+              netBalance < 0 ? 'text-on-brand-negative' : ''
+            }`}
+          >
+            {netBalance < 0 ? '−' : ''}
+            {formatCurrency(Math.abs(netBalance))}
+          </p>
+          <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones − deuda de tarjeta</p>
         </div>
       </header>
     );

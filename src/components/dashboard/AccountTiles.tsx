@@ -47,7 +47,7 @@ export const AccountTiles: React.FC = () => {
   const availableCredit = Math.max(creditLimit - creditCardBalance, 0);
 
   return (
-    <section className="card divide-y divide-line overflow-hidden md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
+    <section className="card shadow-lg shadow-black/5 divide-y divide-line overflow-hidden md:grid md:grid-cols-3 md:divide-x md:divide-y-0">
       <AccountRow
         Icon={Wallet}
         label="Billetera"
