@@ -53,6 +53,23 @@ export const Header: React.FC = () => {
   const isFormView = currentView === 'new-transaction' || currentView === 'new-pending';
   const isSetupView = currentView === 'setup' || currentView === 'login';
 
+  // Logo de la app: siempre lleva al Inicio, arriba de todo. La imagen va absoluta para que
+  // no imponga su alto: en el banner de escritorio el tamaño lo da la columna de la derecha.
+  const logoButton = (className: string) => (
+    <button
+      type="button"
+      onClick={() => {
+        setCurrentView('dashboard');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }}
+      title="Ir al inicio"
+      aria-label="Ir al inicio"
+      className={`relative min-w-0 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-[1.03] active:scale-95 cursor-pointer ${className}`}
+    >
+      <img src="/icon-192.png" alt="" className="absolute inset-0 h-full w-full" />
+    </button>
+  );
+
   // En el Inicio el header es un banner: saludo, disponible y aviso de vencidos en rosa
   if (currentView === 'dashboard') {
     const hour = new Date().getHours();
@@ -64,66 +81,73 @@ export const Header: React.FC = () => {
 
     return (
       <header className={`${brandClass} rounded-b-[24px] pb-12`}>
-        <div className="mx-auto flex h-16 w-full max-w-[1100px] xl:max-w-[1320px] items-center justify-between gap-3 px-4 md:px-8">
-          <div className="flex min-w-0 items-center gap-3">
-            <img src="/icon-192.png" alt="Money Manager" className="h-10 w-10 shrink-0 rounded-xl shadow-sm" />
-            <div className="min-w-0">
-              <p className="truncate text-base font-semibold">
-                {greeting}
-                {firstName ? `, ${firstName}` : ''}
+        {/* En móvil el logo va pequeño junto al saludo; desde md ocupa todo el alto y el resto va a su derecha */}
+        <div className="mx-auto flex w-full max-w-[1100px] gap-6 px-4 md:px-8 md:pt-4 xl:max-w-[1320px]">
+          {logoButton('hidden aspect-square self-stretch rounded-3xl md:block')}
+
+          <div className="min-w-0 flex-1">
+            <div className="flex h-16 items-center justify-between gap-3 md:h-auto">
+              <div className="flex min-w-0 items-center gap-3">
+                {logoButton('h-10 w-10 rounded-xl md:hidden')}
+                <div className="min-w-0">
+                  <p className="truncate text-base font-semibold">
+                    {greeting}
+                    {firstName ? `, ${firstName}` : ''}
+                  </p>
+                  <p className="truncate text-xs capitalize text-on-brand/70">{dateLabel}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {overdueCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setCurrentView('pendientes')}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-negative px-2.5 py-1 text-xs font-medium text-on-negative shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
+                  >
+                    <CalendarClock size={14} strokeWidth={2} />
+                    {overdueCount} {overdueCount === 1 ? 'vencido' : 'vencidos'}
+                  </button>
+                )}
+                <ThemeToggle className="text-on-brand/80 hover:bg-white/15 hover:text-on-brand" />
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('setup')}
+                  title="Ajustes"
+                  aria-label="Ajustes"
+                  className={iconButtonClass}
+                >
+                  <Settings size={18} strokeWidth={1.75} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentView('login')}
+                  title="Mi cuenta"
+                  aria-label="Mi cuenta"
+                  className={avatarClass}
+                >
+                  <img
+                    className="h-full w-full object-cover"
+                    src={avatarSrc(user.avatarUrl)}
+                    alt={user.name || 'Usuario'}
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2 md:pt-4">
+              <p className="text-xs text-on-brand/70">Disponible</p>
+              <p
+                className={`mt-1 font-mono text-3xl font-semibold tracking-tight md:text-4xl ${
+                  available < 0 ? 'text-on-brand-negative' : ''
+                }`}
+              >
+                {available < 0 ? '−' : ''}
+                {formatCurrency(Math.abs(available))}
               </p>
-              <p className="truncate text-xs capitalize text-on-brand/70">{dateLabel}</p>
+              <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones</p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {overdueCount > 0 && (
-              <button
-                type="button"
-                onClick={() => setCurrentView('pendientes')}
-                className="flex shrink-0 items-center gap-1.5 rounded-full bg-negative px-2.5 py-1 text-xs font-medium text-on-negative shadow-sm hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                <CalendarClock size={14} strokeWidth={2} />
-                {overdueCount} {overdueCount === 1 ? 'vencido' : 'vencidos'}
-              </button>
-            )}
-            <ThemeToggle className="text-on-brand/80 hover:bg-white/15 hover:text-on-brand" />
-            <button
-              type="button"
-              onClick={() => setCurrentView('setup')}
-              title="Ajustes"
-              aria-label="Ajustes"
-              className={iconButtonClass}
-            >
-              <Settings size={18} strokeWidth={1.75} />
-            </button>
-            <button
-              type="button"
-              onClick={() => setCurrentView('login')}
-              title="Mi cuenta"
-              aria-label="Mi cuenta"
-              className={avatarClass}
-            >
-              <img
-                className="h-full w-full object-cover"
-                src={avatarSrc(user.avatarUrl)}
-                alt={user.name || 'Usuario'}
-              />
-            </button>
-          </div>
-        </div>
-
-        <div className="mx-auto w-full max-w-[1100px] xl:max-w-[1320px] px-4 pt-2 md:px-8">
-          <p className="text-xs text-on-brand/70">Disponible</p>
-          <p
-            className={`mt-1 font-mono text-3xl font-semibold tracking-tight md:text-4xl ${
-              available < 0 ? 'text-on-brand-negative' : ''
-            }`}
-          >
-            {available < 0 ? '−' : ''}
-            {formatCurrency(Math.abs(available))}
-          </p>
-          <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones</p>
         </div>
       </header>
     );
@@ -149,6 +173,7 @@ export const Header: React.FC = () => {
               <ArrowLeft size={20} strokeWidth={1.75} />
             </button>
           )}
+          {!showBack && logoButton('h-8 w-8 rounded-lg')}
           <h1 className="truncate text-base font-semibold">{getTitle()}</h1>
         </div>
 
