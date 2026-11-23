@@ -7,6 +7,7 @@ import { formatRelativeDay, todayString } from '../utils/dates';
 import { Transaction } from '../types';
 import { BudgetsCard } from '../components/analysis/BudgetsCard';
 import { MonthlyTrendChart, MonthTotals } from '../components/analysis/MonthlyTrendChart';
+import { CategoryBreakdown, groupByCategory } from '../components/analysis/CategoryBreakdown';
 
 type AccountScope = 'wallet' | 'investment' | 'credit' | 'all';
 type PeriodScope = 'this-month' | '3-months' | '6-months' | 'year' | 'all';
@@ -38,19 +39,6 @@ const matchesAccount = (tx: Transaction, scope: AccountScope) => {
   if (scope === 'investment') return isInvestmentTx(tx);
   if (scope === 'credit') return isCreditTx(tx);
   return true;
-};
-
-const groupByCategory = (items: Transaction[], total: number) => {
-  const map = new Map<string, { total: number; count: number }>();
-  for (const t of items) {
-    const entry = map.get(t.category) ?? { total: 0, count: 0 };
-    entry.total += t.amount;
-    entry.count += 1;
-    map.set(t.category, entry);
-  }
-  return [...map.entries()]
-    .map(([category, data]) => ({ category, ...data, percentage: total > 0 ? (data.total / total) * 100 : 0 }))
-    .sort((a, b) => b.total - a.total);
 };
 
 const chipClass = (active: boolean) =>
@@ -150,29 +138,6 @@ export const EstadisticasView: React.FC = () => {
 
   const visibleTransactions = showAllTx ? detailedTransactionsList : detailedTransactionsList.slice(0, LIST_PAGE_SIZE);
 
-  const renderCategoryList = (items: ReturnType<typeof groupByCategory>, emptyText: string) =>
-    items.length === 0 ? (
-      <p className="py-6 text-center text-sm text-fg-subtle">{emptyText}</p>
-    ) : (
-      <ul className="space-y-3.5">
-        {items.map((item) => {
-          const { Icon, color } = getCategoryMeta(item.category);
-          return (
-            <li key={item.category}>
-              <div className="mb-1.5 flex items-center gap-2 text-sm">
-                <Icon size={14} strokeWidth={1.75} style={{ color }} />
-                <span className="flex-1 truncate text-fg">{item.category}</span>
-                <span className="text-xs text-fg-subtle">{item.percentage.toFixed(0)}%</span>
-                <span className="w-28 text-right font-mono text-fg">{formatCurrency(Math.round(item.total))}</span>
-              </div>
-              <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
-                <div className="h-full rounded-full" style={{ width: `${item.percentage}%`, backgroundColor: color }} />
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    );
 
   return (
     <main className="mx-auto max-w-[1100px] xl:max-w-[1320px] space-y-4 px-4 pt-4 pb-36 md:px-8 md:pt-6">
@@ -235,11 +200,11 @@ export const EstadisticasView: React.FC = () => {
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="card p-4 md:p-5">
           <h2 className="mb-4 text-sm font-medium text-fg">Gastos por categoría</h2>
-          {renderCategoryList(expenseCategories, 'No hay gastos en este periodo.')}
+          <CategoryBreakdown items={expenseCategories} emptyText="No hay gastos en este periodo." />
         </section>
         <section className="card p-4 md:p-5">
           <h2 className="mb-4 text-sm font-medium text-fg">Ingresos por categoría</h2>
-          {renderCategoryList(incomeCategories, 'No hay ingresos en este periodo.')}
+          <CategoryBreakdown items={incomeCategories} emptyText="No hay ingresos en este periodo." />
         </section>
       </div>
 
