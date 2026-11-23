@@ -155,13 +155,24 @@ export const PendientesView: React.FC = () => {
     .filter((p) => p.dueDate !== null && p.dueDate < today && p.type !== 'income')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  // Resumen lateral (escritorio): el mes actual y el siguiente
+  // Resumen lateral (escritorio): el mes actual y los dos siguientes, en ceros si no tienen pendientes
   const [currentYear, currentMonth] = currentMonthKey.split('-').map(Number);
-  const nextMonthDate = new Date(currentYear, currentMonth, 1);
-  const nextMonthKey = `${nextMonthDate.getFullYear()}-${String(nextMonthDate.getMonth() + 1).padStart(2, '0')}`;
-  const summaryGroups = [currentMonthKey, nextMonthKey]
-    .map((key) => groupMap[key])
-    .filter((group): group is GroupedPending => Boolean(group));
+  const summaryGroups = [0, 1, 2].map((offset): GroupedPending => {
+    const date = new Date(currentYear, currentMonth - 1 + offset, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    return (
+      groupMap[key] ?? {
+        groupKey: key,
+        groupTitle: `${MONTH_NAMES[date.getMonth()]} ${date.getFullYear()}`,
+        isCurrent: offset === 0,
+        items: [],
+        totalIncome: 0,
+        totalWalletExpense: 0,
+        totalCardExpense: 0,
+        cardMinimumPayment: 0,
+      }
+    );
+  });
 
   const toggleGroup = (groupKey: string, collapsed: boolean) =>
     setCollapsedGroups((prev) => ({ ...prev, [groupKey]: !collapsed }));
