@@ -191,15 +191,19 @@ body {
   background-color: var(--color-surface);
 }
 
-/* Cuarzo: textura fija detrás del contenido, solo en modo claro. Es un pseudo-elemento fijo
-   porque Safari en iOS ignora background-attachment: fixed */
-html:not(.dark) .app-shell::before {
+/* Mármol: textura fija detrás del contenido, clara u oscura según el tema. Es un pseudo-elemento
+   fijo porque Safari en iOS ignora background-attachment: fixed. El desenfoque viene en la imagen. */
+.app-shell::before {
   content: '';
   position: fixed;
   inset: 0;
   z-index: -1;
   pointer-events: none;
   background: #fdfcfe url('/quartz-light.webp') center / cover no-repeat;
+}
+
+html.dark .app-shell::before {
+  background: #141416 url('/quartz-dark.webp') center / cover no-repeat;
 }
 
 /* Tarjeta base del sistema: en claro una caja gris sin borde sobre fondo blanco,
