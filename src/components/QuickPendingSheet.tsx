@@ -7,6 +7,7 @@ import { getCategoryMeta } from '../utils/categories';
 import { addDays, formatShortDate, todayString } from '../utils/dates';
 import { BottomSheet } from './ui/BottomSheet';
 import { applyKey, NumericKeypad } from './ui/NumericKeypad';
+import { CompactInstallmentFields, parseInstallmentInputs } from './InstallmentFields';
 
 const VISIBLE_CATEGORIES = 7;
 // Categorías que se ofrecen primero para ingresos y al final para gastos
@@ -43,6 +44,9 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
   const [name, setName] = useState('');
   const [dueDate, setDueDate] = useState<string | null>(today);
   const [recurrence, setRecurrence] = useState('none');
+  const [installments, setInstallments] = useState(1);
+  // null = se usa el interés del último pendiente a cuotas
+  const [interestInput, setInterestInput] = useState<string | null>(null);
   const [showAllCategories, setShowAllCategories] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +60,8 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
     setName('');
     setDueDate(todayString());
     setRecurrence('none');
+    setInstallments(1);
+    setInterestInput(null);
     setShowAllCategories(false);
   };
 
@@ -82,6 +88,16 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
         rankedCategories.slice(VISIBLE_CATEGORIES).includes(selectedCategory) ? [selectedCategory] : []
       );
   const canUseCreditCard = type === 'expense' && selectedCategory !== 'Inversiones';
+  const usesCreditCard = canUseCreditCard && account === CREDIT_CARD_METHOD;
+
+  // Interés del último pendiente a cuotas, como valor por defecto
+  const lastInterestRate = useMemo(
+    () =>
+      pendingItems.find((p) => p.paymentMethod === CREDIT_CARD_METHOD && (p.installments ?? 1) > 1)?.interestRate ??
+      0,
+    [pendingItems]
+  );
+  const interestRate = interestInput ?? String(lastInterestRate);
 
   // Pendientes con un nombre parecido, para copiar su categoría, cuenta y repetición
   const suggestions = useMemo(() => {
@@ -111,6 +127,8 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
     setCategory(item.category);
     if (item.paymentMethod) setAccount(item.paymentMethod === CREDIT_CARD_METHOD ? CREDIT_CARD_METHOD : 'Billetera');
     setRecurrence(item.recurrence || 'none');
+    if (item.installments) setInstallments(item.installments);
+    if (item.interestRate !== undefined) setInterestInput(String(item.interestRate));
   };
 
   const openFullForm = () => {
@@ -133,6 +151,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
       note: '',
       isAutomatic: false,
       paymentMethod: type === 'expense' ? (canUseCreditCard ? account : 'Billetera') : undefined,
+      ...(usesCreditCard && parseInstallmentInputs(String(installments), installments > 1 ? interestRate : '0')),
     });
     navigator.vibrate?.(10);
     setSaving(false);
@@ -240,6 +259,16 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
             </button>
           ))}
         </div>
+      )}
+
+      {usesCreditCard && (
+        <CompactInstallmentFields
+          amount={amount}
+          installments={installments}
+          interestRate={interestRate}
+          onInstallmentsChange={setInstallments}
+          onInterestRateChange={setInterestInput}
+        />
       )}
 
       <div>
