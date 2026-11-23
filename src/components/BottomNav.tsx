@@ -4,6 +4,7 @@ import { ArrowLeftRight, CalendarClock, ChartColumn, CreditCard, House, LucideIc
 import { useApp } from '../context/AppContext';
 import { ViewMode } from '../types';
 import { QuickAddSheet } from './QuickAddSheet';
+import { QuickPendingSheet } from './QuickPendingSheet';
 import { countOverdue, todayString } from '../utils/dates';
 
 const LONG_PRESS_MS = 450;
@@ -36,9 +37,10 @@ const NavItem: React.FC<{ view: ViewMode; label: string; Icon: LucideIcon; alert
 };
 
 export const BottomNav: React.FC = () => {
-  const { currentView, setCurrentView, setEditingPendingItem, setIsTransferModalOpen, pendingItems } = useApp();
+  const { currentView, setIsTransferModalOpen, pendingItems } = useApp();
   const [showMenu, setShowMenu] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showQuickPending, setShowQuickPending] = useState(false);
   const pressTimer = useRef<number | null>(null);
   const longPressed = useRef(false);
 
@@ -57,10 +59,10 @@ export const BottomNav: React.FC = () => {
     setShowQuickAdd(true);
   };
 
+  // Como en los movimientos: hoja rápida, y el formulario completo desde "Más opciones"
   const newPending = () => {
     setShowMenu(false);
-    setEditingPendingItem(null);
-    setCurrentView('new-pending');
+    setShowQuickPending(true);
   };
 
   const openTransfer = () => {
@@ -170,6 +172,7 @@ export const BottomNav: React.FC = () => {
       </nav>
 
       <QuickAddSheet open={showQuickAdd} onClose={() => setShowQuickAdd(false)} />
+      <QuickPendingSheet open={showQuickPending} onClose={() => setShowQuickPending(false)} />
     </>
   );
 };
