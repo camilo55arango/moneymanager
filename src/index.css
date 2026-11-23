@@ -5,7 +5,8 @@
 
 @theme {
   --font-sans: 'Geist', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, monospace;
+  /* Fuente de los montos; las cifras van tabulares (.font-mono) para alinear columnas */
+  --font-mono: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
 
   /* Tokens del sistema "Calm Ledger". Las vistas nuevas usan estos. */
   --color-canvas: #ffffff;
@@ -290,8 +291,12 @@ html.dark .card {
   font-weight: 600;
 }
 
+.font-mono {
+  font-variant-numeric: tabular-nums;
+}
+
 .font-numeric-data {
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
