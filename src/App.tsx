@@ -25,7 +25,7 @@ const MainContent: React.FC = () => {
   const { currentView } = useApp();
 
   return (
-    <div className="min-h-screen flex flex-col bg-surface text-on-surface">
+    <div className="app-shell min-h-screen flex flex-col text-on-surface">
       <Header />
       <div className="flex-1">
         <Suspense fallback={null}>
