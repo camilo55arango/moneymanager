@@ -65,12 +65,15 @@ export const Header: React.FC = () => {
     return (
       <header className={`${brandClass} rounded-b-[24px] pb-12`}>
         <div className="mx-auto flex h-16 w-full max-w-[1100px] xl:max-w-[1320px] items-center justify-between gap-3 px-4 md:px-8">
-          <div className="min-w-0">
-            <p className="truncate text-base font-semibold">
-              {greeting}
-              {firstName ? `, ${firstName}` : ''}
-            </p>
-            <p className="text-xs capitalize text-on-brand/70">{dateLabel}</p>
+          <div className="flex min-w-0 items-center gap-3">
+            <img src="/icon-192.png" alt="Money Manager" className="h-10 w-10 shrink-0 rounded-xl shadow-sm" />
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold">
+                {greeting}
+                {firstName ? `, ${firstName}` : ''}
+              </p>
+              <p className="truncate text-xs capitalize text-on-brand/70">{dateLabel}</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
