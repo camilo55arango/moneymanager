@@ -24,7 +24,6 @@ export const Header: React.FC = () => {
     setEditingTransaction,
     walletBalance,
     investmentBalance,
-    creditCardBalance,
     pendingItems,
   } = useApp();
 
@@ -54,18 +53,18 @@ export const Header: React.FC = () => {
   const isFormView = currentView === 'new-transaction' || currentView === 'new-pending';
   const isSetupView = currentView === 'setup' || currentView === 'login';
 
-  // En el Inicio el header es un banner: saludo, disponible neto y aviso de vencidos en rosa
+  // En el Inicio el header es un banner: saludo, disponible y aviso de vencidos en rosa
   if (currentView === 'dashboard') {
     const hour = new Date().getHours();
     const greeting = hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
     const firstName = user.name.split(' ')[0];
     const dateLabel = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
-    const netBalance = walletBalance + investmentBalance - creditCardBalance;
+    const available = walletBalance + investmentBalance;
     const overdueCount = countOverdue(pendingItems, todayString());
 
     return (
       <header className={`${brandClass} rounded-b-[24px] pb-12`}>
-        <div className="mx-auto flex h-16 w-full max-w-[1100px] items-center justify-between gap-3 px-4 md:px-8">
+        <div className="mx-auto flex h-16 w-full max-w-[1100px] xl:max-w-[1320px] items-center justify-between gap-3 px-4 md:px-8">
           <div className="min-w-0">
             <p className="truncate text-base font-semibold">
               {greeting}
@@ -111,17 +110,17 @@ export const Header: React.FC = () => {
           </div>
         </div>
 
-        <div className="mx-auto w-full max-w-[1100px] px-4 pt-2 md:px-8">
-          <p className="text-xs text-on-brand/70">Disponible neto</p>
+        <div className="mx-auto w-full max-w-[1100px] xl:max-w-[1320px] px-4 pt-2 md:px-8">
+          <p className="text-xs text-on-brand/70">Disponible</p>
           <p
             className={`mt-1 font-mono text-3xl font-semibold tracking-tight md:text-4xl ${
-              netBalance < 0 ? 'text-on-brand-negative' : ''
+              available < 0 ? 'text-on-brand-negative' : ''
             }`}
           >
-            {netBalance < 0 ? '−' : ''}
-            {formatCurrency(Math.abs(netBalance))}
+            {available < 0 ? '−' : ''}
+            {formatCurrency(Math.abs(available))}
           </p>
-          <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones − deuda de tarjeta</p>
+          <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones</p>
         </div>
       </header>
     );
@@ -132,7 +131,7 @@ export const Header: React.FC = () => {
 
   return (
     <header className={headerClass}>
-      <div className="mx-auto flex h-14 w-full max-w-[1100px] items-center justify-between gap-3 px-4 md:px-8">
+      <div className="mx-auto flex h-14 w-full max-w-[1100px] xl:max-w-[1320px] items-center justify-between gap-3 px-4 md:px-8">
         <div className="flex min-w-0 items-center gap-2">
           {showBack && (
             <button

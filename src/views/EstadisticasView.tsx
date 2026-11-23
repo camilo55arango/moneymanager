@@ -175,7 +175,7 @@ export const EstadisticasView: React.FC = () => {
     );
 
   return (
-    <main className="mx-auto max-w-[1100px] space-y-4 px-4 pt-4 pb-36 md:px-8 md:pt-6">
+    <main className="mx-auto max-w-[1100px] xl:max-w-[1320px] space-y-4 px-4 pt-4 pb-36 md:px-8 md:pt-6">
       {/* Filtros: cuenta y periodo en una sola franja */}
       <div className="no-scrollbar -mx-4 flex items-center gap-1 overflow-x-auto px-4 md:mx-0 md:px-0">
         {ACCOUNT_OPTIONS.map((opt) => (
