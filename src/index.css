@@ -199,7 +199,7 @@ html:not(.dark) .app-shell::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  background: #fcfbfe url('/quartz-light.svg') center / cover no-repeat;
+  background: #fdfcfe url('/quartz-light.webp') center / cover no-repeat;
 }
 
 /* Tarjeta base del sistema: en claro una caja gris sin borde sobre fondo blanco,
