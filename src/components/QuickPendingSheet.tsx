@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Check } from 'lucide-react';
+import { CalendarDays, Check, Zap } from 'lucide-react';
 import { useApp, CREDIT_CARD_METHOD } from '../context/AppContext';
 import { PendingItem, TransactionType } from '../types';
 import { formatCurrency } from '../utils/formatCurrency';
@@ -44,6 +44,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
   const [name, setName] = useState('');
   const [dueDate, setDueDate] = useState<string | null>(today);
   const [recurrence, setRecurrence] = useState('none');
+  const [isAutomatic, setIsAutomatic] = useState(false);
   const [installments, setInstallments] = useState(1);
   // null = se usa el interés del último pendiente a cuotas
   const [interestInput, setInterestInput] = useState<string | null>(null);
@@ -60,6 +61,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
     setName('');
     setDueDate(todayString());
     setRecurrence('none');
+    setIsAutomatic(false);
     setInstallments(1);
     setInterestInput(null);
     setShowAllCategories(false);
@@ -127,6 +129,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
     setCategory(item.category);
     if (item.paymentMethod) setAccount(item.paymentMethod === CREDIT_CARD_METHOD ? CREDIT_CARD_METHOD : 'Billetera');
     setRecurrence(item.recurrence || 'none');
+    setIsAutomatic(!!item.isAutomatic);
     if (item.installments) setInstallments(item.installments);
     if (item.interestRate !== undefined) setInterestInput(String(item.interestRate));
   };
@@ -149,7 +152,7 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
       // Sin fecha no hay desde dónde repetir
       recurrence: dueDate ? recurrence : 'none',
       note: '',
-      isAutomatic: false,
+      isAutomatic,
       paymentMethod: type === 'expense' ? (canUseCreditCard ? account : 'Billetera') : undefined,
       ...(usesCreditCard && parseInstallmentInputs(String(installments), installments > 1 ? interestRate : '0')),
     });
@@ -336,6 +339,29 @@ export const QuickPendingSheet: React.FC<QuickPendingSheetProps> = ({ open, onCl
           ))}
         </div>
       )}
+
+      <button
+        type="button"
+        role="switch"
+        aria-checked={isAutomatic}
+        onClick={() => setIsAutomatic((v) => !v)}
+        className="flex w-full items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-2 text-left cursor-pointer"
+      >
+        <span className="flex items-center gap-2 text-sm text-fg">
+          <Zap size={15} strokeWidth={1.75} className={isAutomatic ? 'text-accent' : 'text-fg-muted'} />
+          Débito automático
+          <span className="text-xs text-fg-subtle">· se paga solo</span>
+        </span>
+        <span
+          className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${isAutomatic ? 'bg-accent' : 'bg-line-strong'}`}
+        >
+          <span
+            className={`absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+              isAutomatic ? 'translate-x-[18px]' : 'translate-x-0.5'
+            }`}
+          />
+        </span>
+      </button>
 
       <NumericKeypad onKey={pressKey} />
 
