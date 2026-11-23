@@ -53,8 +53,7 @@ export const Header: React.FC = () => {
   const isFormView = currentView === 'new-transaction' || currentView === 'new-pending';
   const isSetupView = currentView === 'setup' || currentView === 'login';
 
-  // Logo de la app: siempre lleva al Inicio, arriba de todo. La imagen va absoluta para que
-  // no imponga su alto: en el banner de escritorio el tamaño lo da la columna de la derecha.
+  // Logo de la app: siempre lleva al Inicio, arriba de todo
   const logoButton = (className: string) => (
     <button
       type="button"
@@ -64,9 +63,9 @@ export const Header: React.FC = () => {
       }}
       title="Ir al inicio"
       aria-label="Ir al inicio"
-      className={`relative min-w-0 shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-[1.03] active:scale-95 cursor-pointer ${className}`}
+      className={`shrink-0 overflow-hidden shadow-sm transition-transform hover:scale-[1.03] active:scale-95 cursor-pointer ${className}`}
     >
-      <img src="/icon-192.png" alt="" className="absolute inset-0 h-full w-full" />
+      <img src="/icon-192.png" alt="" className="h-full w-full" />
     </button>
   );
 
@@ -81,20 +80,20 @@ export const Header: React.FC = () => {
 
     return (
       <header className={`${brandClass} rounded-b-[24px] pb-12`}>
-        {/* En móvil el logo va pequeño junto al saludo; desde md ocupa todo el alto y el resto va a su derecha */}
-        <div className="mx-auto flex w-full max-w-[1100px] gap-6 px-4 md:px-8 md:pt-4 xl:max-w-[1320px]">
-          {logoButton('hidden aspect-square self-stretch rounded-3xl md:block')}
+        {/* En móvil el logo va pequeño junto al saludo; desde md va grande, con saludo y disponible a su derecha */}
+        <div className="mx-auto flex w-full max-w-[1100px] items-center gap-8 px-4 md:px-8 md:pt-4 xl:max-w-[1320px]">
+          {logoButton('hidden h-36 w-36 rounded-[28px] md:block')}
 
           <div className="min-w-0 flex-1">
             <div className="flex h-16 items-center justify-between gap-3 md:h-auto">
               <div className="flex min-w-0 items-center gap-3">
                 {logoButton('h-10 w-10 rounded-xl md:hidden')}
                 <div className="min-w-0">
-                  <p className="truncate text-base font-semibold">
+                  <p className="truncate text-base font-semibold md:text-2xl">
                     {greeting}
                     {firstName ? `, ${firstName}` : ''}
                   </p>
-                  <p className="truncate text-xs capitalize text-on-brand/70">{dateLabel}</p>
+                  <p className="truncate text-xs capitalize text-on-brand/70 md:text-sm">{dateLabel}</p>
                 </div>
               </div>
 
@@ -136,7 +135,7 @@ export const Header: React.FC = () => {
             </div>
 
             <div className="pt-2 md:pt-4">
-              <p className="text-xs text-on-brand/70">Disponible</p>
+              <p className="text-xs text-on-brand/70 md:text-sm">Disponible</p>
               <p
                 className={`mt-1 font-mono text-3xl font-semibold tracking-tight md:text-4xl ${
                   available < 0 ? 'text-on-brand-negative' : ''
@@ -145,7 +144,7 @@ export const Header: React.FC = () => {
                 {available < 0 ? '−' : ''}
                 {formatCurrency(Math.abs(available))}
               </p>
-              <p className="mt-1 text-xs text-on-brand/70">Billetera + inversiones</p>
+              <p className="mt-1 text-xs text-on-brand/70 md:text-sm">Billetera + inversiones</p>
             </div>
           </div>
         </div>
